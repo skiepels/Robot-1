@@ -20,8 +20,8 @@ logger = logging.getLogger('trading_strategy')
 
 
 def exception_handler(func=None, retries=0, retry_delay=1, 
-                    fallback_return=None, log_level=logging.ERROR,
-                    notify=False):
+                      fallback_return=None, log_level=logging.ERROR,
+                      notify=False):
     """
     Decorator for handling exceptions in functions.
     
@@ -47,223 +47,20 @@ def exception_handler(func=None, retries=0, retry_delay=1,
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            # Get function metadata for better logging
-            module = error.get('module', 'Unknown')
-            module_counts[module] = module_counts.get(module, 0) + 1
-        
-        # Generate the report
-        report = "Error Analysis Report\n"
-        report += "====================\n\n"
-        
-        report += f"Total Errors: {len(error_log)}\n\n"
-        
-        report += "Errors by Type:\n"
-        for error_type, count in sorted(error_counts.items(), key=lambda x: x[1], reverse=True):
-            report += f"  {error_type}: {count}\n"
-        
-        report += "\nErrors by Severity:\n"
-        for severity, count in sorted(severity_counts.items(), key=lambda x: x[1], reverse=True):
-            report += f"  {severity}: {count}\n"
-        
-        report += "\nErrors by Module:\n"
-        for module, count in sorted(module_counts.items(), key=lambda x: x[1], reverse=True):
-            report += f"  {module}: {count}\n"
-        
-        report += "\nMost Recent Errors:\n"
-        recent_errors = sorted(error_log, key=lambda x: x.get('timestamp', ''), reverse=True)[:10]
-        
-        for i, error in enumerate(recent_errors):
-            report += f"\n{i+1}. {error.get('type', 'Unknown Error')} ({error.get('severity', 'ERROR')})\n"
-            report += f"   Time: {error.get('timestamp', 'Unknown')}\n"
-            report += f"   Module: {error.get('module', 'Unknown')}\n"
-            report += f"   Function: {error.get('function', 'Unknown')}\n"
-            report += f"   Message: {error.get('message', 'No message')}\n"
-        
-        # Write report to file if specified
-        if output_file:
-            with open(output_file, 'w') as f:
-                f.write(report)
-        
-        return report
-
-
-def send_error_notification(message, traceback=None):
-    """
-    Send an error notification.
-    
-    Parameters:
-    -----------
-    message: str
-        Error message
-    traceback: str, optional
-        Error traceback
-    """
-    # This is a placeholder function that would integrate
-    # with email, SMS, Slack, or other notification systems
-    
-    # For now, just log the error
-    logger.error(f"NOTIFICATION: {message}")
-    
-    if traceback:
-        logger.debug(f"Traceback: {traceback}")
-
-
-# Example usage
-if __name__ == '__main__':
-    # Set up logging
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler('error_handler_test.log')
-        ]
-    )
-    
-    # Test the error handler
-    @exception_handler(retries=2, retry_delay=1, fallback_return=None)
-    def test_function(x, y):
-        """Test function that divides x by y."""
-        return x / y
-    
-    # Test with valid arguments
-    result = test_function(10, 2)
-    print(f"Result with valid args: {result}")
-    
-    # Test with invalid arguments
-    result = test_function(10, 0)
-    print(f"Result with invalid args: {result}")
-    
-    # Test the performance decorator
-    @measure_performance(threshold_ms=100)
-    def slow_function():
-        """A deliberately slow function."""
-        time.sleep(0.2)
-        return "Done"
-    
-    slow_function()
-    
-    # Test the validation decorator
-    def validate_positive_numbers(*args, **kwargs):
-        """Validate that all arguments are positive numbers."""
-        for arg in args:
-            if not isinstance(arg, (int, float)) or arg <= 0:
-                return False
-        return True
-    
-    @validate_arguments(validate_positive_numbers)
-    def calculate_area(width, height):
-        """Calculate the area of a rectangle."""
-        return width * height
-    
-    area1 = calculate_area(5, 10)
-    print(f"Area with valid dimensions: {area1}")
-    
-    area2 = calculate_area(-5, 10)
-    print(f"Area with invalid dimensions: {area2}")
-    
-    # Test the error handler class
-    error_handler = ErrorHandler()
-    
-    try:
-        result = 10 / 0
-    except Exception as e:
-        error_handler.log_error(
-            error_type=type(e).__name__,
-            error_message=str(e),
-            traceback=traceback.format_exc(),
-            module=__name__,
-            function='<main>',
-            severity='ERROR'
-        )
-    
-    # Generate and print an error report
-    report = error_handler.generate_error_report()
-    print("\nError Report:")
-    print(report)_name = func.__module__
-            func_name = func.__name__
-            
-            # Get file name and line number
-            try:
-                filename = inspect.getfile(func)
-                _, filename = os.path.split(filename)
-                lineno = inspect.getsourcelines(func)[1]
-            except:
-                filename = "unknown"
-                lineno = 0
-            
-            # Get caller info if available
-            caller_info = ""
-            current_frame = inspect.currentframe()
-            if current_frame:
-                caller_frame = current_frame.f_back
-                if caller_frame:
-                    caller_filename = caller_frame.f_code.co_filename
-                    _, caller_filename = os.path.split(caller_filename)
-                    caller_lineno = caller_frame.f_lineno
-                    caller_func = caller_frame.f_code.co_name
-                    caller_info = f", called from {caller_filename}:{caller_lineno} in {caller_func}()"
-            
-            # Try to execute the function with retries
             attempts = 0
-            max_attempts = retries + 1
-            
-            while attempts < max_attempts:
+            while attempts <= retries:
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
                     attempts += 1
-                    
-                    # Format the exception message
-                    exc_type = type(e).__name__
-                    exc_msg = str(e)
-                    
-                    # Get the full traceback
-                    tb = traceback.format_exc()
-                    
-                    # Create detailed error message
-                    if attempts < max_attempts:
-                        error_msg = (f"Exception in {module_name}.{func_name}() at {filename}:{lineno}{caller_info}, "
-                                   f"attempt {attempts}/{max_attempts}: {exc_type}: {exc_msg}")
-                    else:
-                        error_msg = (f"Exception in {module_name}.{func_name}() at {filename}:{lineno}{caller_info}, "
-                                   f"all {max_attempts} attempts failed: {exc_type}: {exc_msg}")
-                    
-                    # Log the error with appropriate level
-                    if log_level == logging.DEBUG:
-                        logger.debug(error_msg)
-                        logger.debug(f"Traceback: {tb}")
-                    elif log_level == logging.INFO:
-                        logger.info(error_msg)
-                        logger.debug(f"Traceback: {tb}")
-                    elif log_level == logging.WARNING:
-                        logger.warning(error_msg)
-                        logger.debug(f"Traceback: {tb}")
-                    elif log_level == logging.ERROR:
-                        logger.error(error_msg)
-                        logger.debug(f"Traceback: {tb}")
-                    elif log_level == logging.CRITICAL:
-                        logger.critical(error_msg)
-                        logger.debug(f"Traceback: {tb}")
-                    
-                    # Send notification if requested
+                    logger.log(log_level, f"Exception in {func.__name__}: {e}")
                     if notify:
-                        send_error_notification(error_msg, tb)
-                    
-                    # Wait before retrying
-                    if attempts < max_attempts:
-                        time.sleep(retry_delay)
-            
-            # If we get here, all retries failed
-            return fallback_return
-        
+                        send_error_notification(f"Exception in {func.__name__}", traceback.format_exc())
+                    if attempts > retries:
+                        return fallback_return
+                    time.sleep(retry_delay)
         return wrapper
-    
-    # Handle case where decorator is used without arguments
-    if func is not None:
-        return decorator(func)
-    
-    return decorator
+    return decorator if func is None else decorator(func)
 
 
 def timeout_handler(timeout=10, fallback_return=None):
@@ -550,4 +347,135 @@ class ErrorHandler:
         # Count errors by module
         module_counts = {}
         for error in error_log:
-            module
+            module = error.get('module', 'Unknown')
+            module_counts[module] = module_counts.get(module, 0) + 1
+        
+        report = "Error Analysis Report\n"
+        report += "====================\n\n"
+        
+        report += f"Total Errors: {len(error_log)}\n\n"
+        
+        report += "Errors by Type:\n"
+        for error_type, count in sorted(error_counts.items(), key=lambda x: x[1], reverse=True):
+            report += f"  {error_type}: {count}\n"
+        
+        report += "\nErrors by Severity:\n"
+        for severity, count in sorted(severity_counts.items(), key=lambda x: x[1], reverse=True):
+            report += f"  {severity}: {count}\n"
+        
+        report += "\nErrors by Module:\n"
+        for module, count in sorted(module_counts.items(), key=lambda x: x[1], reverse=True):
+            report += f"  {module}: {count}\n"
+        
+        report += "\nMost Recent Errors:\n"
+        recent_errors = sorted(error_log, key=lambda x: x.get('timestamp', ''), reverse=True)[:10]
+        
+        for i, error in enumerate(recent_errors):
+            report += f"\n{i+1}. {error.get('type', 'Unknown Error')} ({error.get('severity', 'ERROR')})\n"
+            report += f"   Time: {error.get('timestamp', 'Unknown')}\n"
+            report += f"   Module: {error.get('module', 'Unknown')}\n"
+            report += f"   Function: {error.get('function', 'Unknown')}\n"
+            report += f"   Message: {error.get('message', 'No message')}\n"
+        
+        # Write report to file if specified
+        if output_file:
+            with open(output_file, 'w') as f:
+                f.write(report)
+        
+        return report
+
+
+def send_error_notification(message, traceback=None):
+    """
+    Send an error notification.
+    
+    Parameters:
+    -----------
+    message: str
+        Error message
+    traceback: str, optional
+        Error traceback
+    """
+    # This is a placeholder function that would integrate
+    # with email, SMS, Slack, or other notification systems
+    
+    # For now, just log the error
+    logger.error(f"NOTIFICATION: {message}")
+    
+    if traceback:
+        logger.debug(f"Traceback: {traceback}")
+
+
+# Example usage
+if __name__ == '__main__':
+    # Set up logging
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler('error_handler_test.log')
+        ]
+    )
+    
+    # Test the error handler
+    @exception_handler(retries=2, retry_delay=1, fallback_return=None)
+    def test_function(x, y):
+        """Test function that divides x by y."""
+        return x / y
+    
+    # Test with valid arguments
+    result = test_function(10, 2)
+    print(f"Result with valid args: {result}")
+    
+    # Test with invalid arguments
+    result = test_function(10, 0)
+    print(f"Result with invalid args: {result}")
+    
+    # Test the performance decorator
+    @measure_performance(threshold_ms=100)
+    def slow_function():
+        """A deliberately slow function."""
+        time.sleep(0.2)
+        return "Done"
+    
+    slow_function()
+    
+    # Test the validation decorator
+    def validate_positive_numbers(*args, **kwargs):
+        """Validate that all arguments are positive numbers."""
+        for arg in args:
+            if not isinstance(arg, (int, float)) or arg <= 0:
+                return False
+        return True
+    
+    @validate_arguments(validate_positive_numbers)
+    def calculate_area(width, height):
+        """Calculate the area of a rectangle."""
+        return width * height
+    
+    area1 = calculate_area(5, 10)
+    print(f"Area with valid dimensions: {area1}")
+    
+    area2 = calculate_area(-5, 10)
+    print(f"Area with invalid dimensions: {area2}")
+    
+    # Test the error handler class
+    error_handler = ErrorHandler()
+    
+    try:
+        result = 10 / 0
+    except Exception as e:
+        error_handler.log_error(
+            error_type=type(e).__name__,
+            error_message=str(e),
+            traceback=traceback.format_exc(),
+            module=__name__,
+            function='<main>',
+            severity='ERROR'
+        )
+    
+    # Generate and print an error report
+    report = error_handler.generate_error_report()
+    print("\nError Report:")
+    print(report)
