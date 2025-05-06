@@ -1,0 +1,152 @@
+{"timestamp": "2025-05-06T17:29:30.126640", "level": "INFO", "module": "backtest", "function": "__init__", "line": 70, "message": "Backtest initialized from 2025-01-01 to 2025-01-31", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.126825", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 120, "message": "Starting backtest", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.126949", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 74, "message": "Setting up strategy components", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.795288", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 116, "message": "Strategy components initialized", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.798443", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-01", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.799208", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-02", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.799625", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-03", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.799962", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-06", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.800761", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-07", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.801555", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-08", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.802068", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-09", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.802573", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-10", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.802989", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-13", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.803324", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-14", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.803670", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-15", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.804178", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-16", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.804576", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-17", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.804962", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-20", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.805350", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-21", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.805734", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-22", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.806141", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-23", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.806658", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-24", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.807551", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-27", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.807992", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-28", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.808587", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-29", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.809070", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-30", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.809496", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 133, "message": "Processing trading day: 2025-01-31", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.809842", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 176, "message": "Backtest completed", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.809989", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 254, "message": "Generating backtest results", "taskName": null}
+{"timestamp": "2025-05-06T17:29:30.811452", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 344, "message": "Results saved to logs/backtest_results_20250101_to_20250131.json", "taskName": null}
+{"timestamp": "2025-05-06T17:41:49.944937", "level": "INFO", "module": "backtest", "function": "__init__", "line": 71, "message": "Backtest initialized from 2025-01-01 to 2025-01-31", "taskName": null}
+{"timestamp": "2025-05-06T17:41:49.945147", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 128, "message": "Starting backtest", "taskName": null}
+{"timestamp": "2025-05-06T17:41:49.945259", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 75, "message": "Setting up strategy components", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.626645", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 119, "message": "Trading enabled for simulation", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.626889", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 124, "message": "Strategy components initialized", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.627017", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-01 [1/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.628432", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-02 [2/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.629407", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-03 [3/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.630340", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-06 [4/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.631275", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-07 [5/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.632361", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-08 [6/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.633451", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-09 [7/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.634419", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-10 [8/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.635439", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-13 [9/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.636625", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-14 [10/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.637727", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-15 [11/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.638703", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-16 [12/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.639678", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-17 [13/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.640963", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-20 [14/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.642261", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-21 [15/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.643681", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-22 [16/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.644768", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-23 [17/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.645771", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-24 [18/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.646861", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-27 [19/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.647998", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-28 [20/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.648966", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-29 [21/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.650077", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-30 [22/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.651156", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-31 [23/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.652202", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 193, "message": "Backtest completed", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.652297", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 271, "message": "Generating backtest results", "taskName": null}
+{"timestamp": "2025-05-06T17:41:50.653225", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 364, "message": "Results saved to logs/backtest_results_20250101_to_20250131.json", "taskName": null}
+{"timestamp": "2025-05-06T17:48:47.370062", "level": "INFO", "module": "backtest", "function": "__init__", "line": 71, "message": "Backtest initialized from 2025-01-01 to 2025-01-31", "taskName": null}
+{"timestamp": "2025-05-06T17:48:47.370290", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 128, "message": "Starting backtest", "taskName": null}
+{"timestamp": "2025-05-06T17:48:47.370395", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 75, "message": "Setting up strategy components", "taskName": null}
+{"timestamp": "2025-05-06T17:48:48.042303", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 119, "message": "Trading enabled for simulation", "taskName": null}
+{"timestamp": "2025-05-06T17:48:48.042554", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 124, "message": "Strategy components initialized", "taskName": null}
+{"timestamp": "2025-05-06T17:48:48.042655", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 150, "message": "Processing trading day: 2025-01-01 [1/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:14.669791", "level": "INFO", "module": "backtest", "function": "__init__", "line": 71, "message": "Backtest initialized from 2025-01-01 to 2025-01-31", "taskName": null}
+{"timestamp": "2025-05-06T17:53:14.670064", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 131, "message": "Starting backtest", "taskName": null}
+{"timestamp": "2025-05-06T17:53:14.670190", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 75, "message": "Setting up strategy components", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.336062", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 119, "message": "Trading enabled for simulation", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.336467", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 127, "message": "Strategy components initialized", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.336664", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-01 [1/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.374180", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-02 [2/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.385316", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-03 [3/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.397364", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-06 [4/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.415039", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-07 [5/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.426713", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-08 [6/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.437654", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-09 [7/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.449339", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-10 [8/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.460295", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-13 [9/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.498248", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-14 [10/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.526718", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-15 [11/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.537250", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-16 [12/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.549007", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-17 [13/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.560302", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-20 [14/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.577941", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-21 [15/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.588428", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-22 [16/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.599529", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-23 [17/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.611125", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-24 [18/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.622013", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-27 [19/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.639645", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-28 [20/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.651350", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-29 [21/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.663311", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-30 [22/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.692457", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-31 [23/31]", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.705318", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 192, "message": "Backtest completed", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.705521", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 275, "message": "Generating backtest results", "taskName": null}
+{"timestamp": "2025-05-06T17:53:15.706618", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 368, "message": "Results saved to logs/backtest_results_20250101_to_20250131.json", "taskName": null}
+{"timestamp": "2025-05-06T18:33:49.307376", "level": "INFO", "module": "backtest", "function": "__init__", "line": 71, "message": "Backtest initialized from 2025-01-01 to 2025-01-31", "taskName": null}
+{"timestamp": "2025-05-06T18:33:49.307608", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 131, "message": "Starting backtest", "taskName": null}
+{"timestamp": "2025-05-06T18:33:49.307723", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 75, "message": "Setting up strategy components", "taskName": null}
+{"timestamp": "2025-05-06T18:33:49.974335", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 119, "message": "Trading enabled for simulation", "taskName": null}
+{"timestamp": "2025-05-06T18:33:49.975302", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 127, "message": "Strategy components initialized", "taskName": null}
+{"timestamp": "2025-05-06T18:33:49.975820", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-01 [1/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:49.995278", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:49.995749", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-02 [2/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.003568", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.003842", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-03 [3/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.012236", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.013777", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-06 [4/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.025413", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.025706", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-07 [5/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.033809", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.034710", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-08 [6/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.043373", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.043542", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-09 [7/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.051871", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.052052", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-10 [8/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.060505", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.061320", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-13 [9/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.073754", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.074114", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-14 [10/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.081697", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.087998", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-15 [11/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.097179", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.104306", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-16 [12/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.112747", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.113377", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-17 [13/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.123183", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.123356", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-20 [14/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.134754", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.135543", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-21 [15/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.144239", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.144754", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-22 [16/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.153084", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.154907", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-23 [17/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.163479", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.164453", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-24 [18/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.172258", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.173518", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-27 [19/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.184849", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.185563", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-28 [20/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.194037", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.194248", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-29 [21/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.202446", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.202681", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-30 [22/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.211358", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.212130", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 149, "message": "Processing trading day: 2025-01-31 [23/31]", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.220476", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 225, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.220657", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 192, "message": "Backtest completed", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.220737", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 302, "message": "Generating backtest results", "taskName": null}
+{"timestamp": "2025-05-06T18:33:50.221766", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 395, "message": "Results saved to logs/backtest_results_20250101_to_20250131.json", "taskName": null}

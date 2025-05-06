@@ -1,0 +1,9 @@
+{"timestamp": "2025-05-05T10:52:12.194072", "level": "INFO", "module": "main", "function": "run_strategy", "line": 121, "message": "Starting day trading strategy", "taskName": null}
+{"timestamp": "2025-05-05T10:52:12.194323", "level": "INFO", "module": "main", "function": "run_strategy", "line": 172, "message": "Strategy initialized with 10000.00 capital", "taskName": null}
+{"timestamp": "2025-05-05T10:52:12.194452", "level": "INFO", "module": "main", "function": "run_strategy", "line": 173, "message": "Maximum risk per trade: 1.00%", "taskName": null}
+{"timestamp": "2025-05-05T10:52:12.194568", "level": "INFO", "module": "main", "function": "run_strategy", "line": 174, "message": "Running in simulation mode", "taskName": null}
+{"timestamp": "2025-05-05T10:52:14.699189", "level": "DEBUG", "module": "main", "function": "run_trading_loop", "line": 337, "message": "Waiting for next update...", "taskName": null}
+{"timestamp": "2025-05-05T10:53:15.336823", "level": "DEBUG", "module": "main", "function": "run_trading_loop", "line": 337, "message": "Waiting for next update...", "taskName": null}
+{"timestamp": "2025-05-05T10:54:16.136842", "level": "DEBUG", "module": "main", "function": "run_trading_loop", "line": 337, "message": "Waiting for next update...", "taskName": null}
+{"timestamp": "2025-05-05T10:54:21.953640", "level": "INFO", "module": "main", "function": "run_trading_loop", "line": 341, "message": "Trading loop interrupted by user", "taskName": null}
+{"timestamp": "2025-05-05T10:54:21.953894", "level": "INFO", "module": "main", "function": "run_strategy", "line": 193, "message": "Strategy shutdown complete", "taskName": null}

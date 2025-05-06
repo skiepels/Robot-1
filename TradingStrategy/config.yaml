@@ -1,0 +1,57 @@
+# Configuration file for Ross Cameron's Day Trading Strategy
+
+# Logging configuration
+logging:
+  level: INFO  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_dir: logs
+
+# Market data API configuration
+market_data:
+  api_key: null  # Replace with your market data API key
+  # Add any additional API-specific configuration here
+
+# Trading parameters based on Ross Cameron's strategy
+trading:
+  # Account parameters
+  initial_capital: 10000  # Starting capital
+  max_risk_per_trade_pct: 1.0  # Maximum percentage of account to risk per trade
+  daily_max_loss_pct: 3.0  # Maximum percentage of account to lose in a day
+  profit_loss_ratio: 2.0  # Target profit-to-loss ratio
+  max_open_positions: 3  # Maximum number of concurrent open positions
+  
+  # Stock selection criteria
+  min_price: 1.0  # Minimum stock price
+  max_price: 20.0  # Maximum stock price
+  min_gap_pct: 10.0  # Minimum gap percentage
+  min_rel_volume: 5.0  # Minimum relative volume (compared to 50-day average)
+  max_float: 10000000  # Maximum float size (number of shares)
+  
+  # Pattern parameters
+  bull_flag_lookback: 7  # Number of candles to look back for bull flag pattern
+  new_high_breakout_lookback: 5  # Number of candles to look back for new high breakout
+  micro_pullback_lookback: 3  # Number of candles to look back for micro pullback
+  
+  # Position sizing strategy
+  quarter_daily_goal_pct: 0.5  # Percentage of account as quarter daily goal
+  daily_goal_pct: 2.0  # Percentage of account as daily goal
+  
+  # Trade execution parameters
+  max_slippage_pct: 1.0  # Maximum acceptable slippage percentage
+
+# Simulation mode configuration
+simulation:
+  enabled: true  # Set to false for live trading (requires broker API setup)
+  historical_data: null  # Path to historical data file for backtesting
+  
+  # Simulation parameters
+  slippage_model: fixed  # Options: fixed, random, proportional
+  fixed_slippage_pct: 0.1  # Fixed slippage percentage
+  commission_per_share: 0.005  # Commission per share
+
+# Broker API configuration (for live trading)
+broker:
+  name: null  # Name of broker (e.g., 'alpaca', 'interactive_brokers')
+  api_key: null  # Broker API key
+  api_secret: null  # Broker API secret
+  endpoint: null  # API endpoint URL
+  paper_trading: true  # Use paper trading account
