@@ -27,6 +27,9 @@ from src.trading.risk_manager import RiskManager
 from src.trading.trade_manager import TradeManager
 from src.utils.logger import setup_logger
 
+# Import the mock data providers
+from mock_data_providers import MockMarketDataProvider, MockNewsDataProvider
+
 
 class BacktestEngine:
     """Backtesting engine for the day trading strategy."""
@@ -75,12 +78,12 @@ class BacktestEngine:
         self.logger.info("Setting up strategy components")
         
         # Initialize data providers with historical data capabilities
-        self.market_data = BacktestMarketDataProvider(
+        self.market_data = MockMarketDataProvider(
             start_date=self.start_date,
             end_date=self.end_date
         )
         
-        self.news_data = BacktestNewsDataProvider(
+        self.news_data = MockNewsDataProvider(
             start_date=self.start_date,
             end_date=self.end_date
         )
@@ -230,32 +233,11 @@ class BacktestEngine:
                 break
                 
             try:
-                # Force trade parameters (bypass validation)
-                entry_price = stock.current_price
-                stop_price = entry_price * 0.98  # 2% stop loss
-                target_price = entry_price * 1.06  # 6% profit target (3:1 reward/risk)
+                # Get trade parameters
+                trade_params = self.trade_manager.evaluate_opportunity(stock)
                 
-                # Force non-zero shares
-                shares = max(100, int(1000 / entry_price))  # Roughly $1000 position
-                
-                # Create trade parameters
-                trade_params = {
-                    'symbol': stock.symbol,
-                    'pattern': 'bull_flag',  # Force pattern
-                    'entry_price': entry_price,
-                    'stop_price': stop_price,
-                    'target_price': target_price,
-                    'shares': shares,
-                    'risk_per_share': entry_price - stop_price,
-                    'reward_per_share': target_price - entry_price,
-                    'dollar_risk': (entry_price - stop_price) * shares,
-                    'dollar_reward': (target_price - entry_price) * shares,
-                    'profit_loss_ratio': (target_price - entry_price) / (entry_price - stop_price),
-                    'timestamp': datetime.now()
-                }
-                
-                # Log trade details
-                self.logger.info(f"Trade for {stock.symbol}: Entry=${entry_price:.2f}, Stop=${stop_price:.2f}, Target=${target_price:.2f}, Shares={shares}")
+                if not trade_params:
+                    continue
                 
                 # Execute trade
                 executed_trade = self.trade_manager.execute_trade(trade_params)
@@ -394,535 +376,67 @@ class BacktestEngine:
         
         self.logger.info(f"Results saved to logs/{results_file}")
         
+        # Generate plots if there are trades
+        if total_trades > 0:
+            self._generate_performance_plots()
+        
         return results
-class BacktestMarketDataProvider(MarketDataProvider):
-    """Market data provider for backtesting with historical data."""
     
-    def __init__(self, start_date, end_date):
-        """
-        Initialize the backtest market data provider.
+    def _generate_performance_plots(self):
+        """Generate performance plots from the backtest results."""
+        # Create equity curve plot
+        plt.figure(figsize=(12, 6))
+        dates = [item['date'] for item in self.equity_curve]
+        equity = [item['equity'] for item in self.equity_curve]
+        plt.plot(dates, equity, marker='o')
+        plt.title('Equity Curve')
+        plt.xlabel('Date')
+        plt.ylabel('Equity ($)')
+        plt.grid(True)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig('logs/equity_curve.png')
         
-        Parameters:
-        -----------
-        start_date: datetime
-            Start date for backtesting
-        end_date: datetime
-            End date for backtesting
-        """
-        super().__init__(api_key=None)
-        self.start_date = start_date
-        self.end_date = end_date
-        self.current_date = start_date
-        self.current_datetime = start_date.replace(hour=9, minute=30)
+        # Create daily P&L plot
+        plt.figure(figsize=(12, 6))
+        dates = list(self.daily_results.keys())
+        pnl = [day['net_pnl'] for day in self.daily_results.values()]
+        colors = ['green' if x >= 0 else 'red' for x in pnl]
+        plt.bar(dates, pnl, color=colors)
+        plt.title('Daily P&L')
+        plt.xlabel('Date')
+        plt.ylabel('P&L ($)')
+        plt.grid(True, axis='y')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig('logs/daily_pnl.png')
         
-        # Historical data storage
-        self.historical_data = {}
+        # Create win rate plot
+        plt.figure(figsize=(10, 6))
+        trades_taken = [day['trades_taken'] for day in self.daily_results.values()]
+        win_rates = [day['win_rate'] * 100 for day in self.daily_results.values()]
         
-        # Sample stock universe for backtesting
-        self.stock_universe = [
-            'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'TSLA', 'NVDA', 'AMD',
-            'INTC', 'NFLX', 'PYPL', 'SQ', 'TWTR', 'SNAP', 'UBER', 'LYFT',
-            'ZM', 'SHOP', 'ROKU', 'ETSY', 'BABA', 'NIO', 'PLTR', 'COIN',
-            'GME', 'AMC', 'BB', 'NOK', 'SPCE', 'TLRY'
-        ]
+        fig, ax1 = plt.subplots(figsize=(12, 6))
         
-        # Load or generate historical data
-        self._load_historical_data()
-    
-    def set_current_date(self, date):
-        """Set the current simulation date."""
-        self.current_date = date
-        self.current_datetime = date.replace(hour=9, minute=30)
-    
-    def set_current_datetime(self, datetime_obj):
-        """Set the current simulation datetime."""
-        self.current_datetime = datetime_obj
-    
-    def _load_historical_data(self):
-        """Load or generate historical data for backtesting."""
-        print("Loading historical data...")
+        color = 'tab:blue'
+        ax1.set_xlabel('Date')
+        ax1.set_ylabel('Trades Taken', color=color)
+        ax1.bar(dates, trades_taken, color=color, alpha=0.6)
+        ax1.tick_params(axis='y', labelcolor=color)
         
-        # In a real implementation, this would load actual historical data
-        # For demonstration, we'll generate synthetic data
+        ax2 = ax1.twinx()
+        color = 'tab:red'
+        ax2.set_ylabel('Win Rate (%)', color=color)
+        ax2.plot(dates, win_rates, color=color, marker='o')
+        ax2.tick_params(axis='y', labelcolor=color)
         
-        total_stocks = len(self.stock_universe)
+        plt.title('Daily Trades and Win Rate')
+        plt.grid(True, axis='y', alpha=0.3)
+        plt.xticks(rotation=45)
+        fig.tight_layout()
+        plt.savefig('logs/win_rate.png')
         
-        for i, symbol in enumerate(self.stock_universe):
-            print(f"Generating data for {symbol} ({i+1}/{total_stocks})...")
-            
-            # Generate daily data for each stock
-            dates = pd.date_range(start=self.start_date, end=self.end_date, freq='D')
-            
-            # Skip weekends
-            dates = [date for date in dates if date.weekday() < 5]
-            
-            # Base price and daily volatility
-            base_price = np.random.uniform(5, 100)
-            volatility = np.random.uniform(0.01, 0.05)
-            
-            # Generate daily prices with random walk
-            daily_returns = np.random.normal(0.0005, volatility, size=len(dates))
-            daily_prices = base_price * (1 + np.cumsum(daily_returns))
-            
-            # Create DataFrame with daily prices
-            daily_data = pd.DataFrame({
-                'date': dates,
-                'open': daily_prices * np.random.uniform(0.99, 1.01, size=len(dates)),
-                'high': daily_prices * np.random.uniform(1.01, 1.05, size=len(dates)),
-                'low': daily_prices * np.random.uniform(0.95, 0.99, size=len(dates)),
-                'close': daily_prices,
-                'volume': np.random.randint(100000, 10000000, size=len(dates))
-            })
-            
-            # Generate intraday data for each day
-            intraday_data = {}
-            
-            for date in dates:
-                # Trading hours (9:30 AM to 4:00 PM)
-                times = pd.date_range(
-                    start=date.replace(hour=9, minute=30),
-                    end=date.replace(hour=16, minute=0),
-                    freq='1min'
-                )
-                
-                # Get daily data for this date
-                day_data = daily_data[daily_data['date'] == date].iloc[0]
-                
-                # Base price for the day
-                open_price = day_data['open']
-                close_price = day_data['close']
-                
-                # Generate minute-by-minute prices
-                minute_volatility = volatility / np.sqrt(390)  # 390 minutes in trading day
-                
-                # Create price path from open to close
-                price_path = np.linspace(open_price, close_price, len(times))
-                
-                # Add random noise
-                noise = np.random.normal(0, minute_volatility * open_price, size=len(times))
-                minute_prices = price_path + np.cumsum(noise)
-                
-                # Ensure high and low are respected
-                minute_high = np.maximum.accumulate(minute_prices)
-                minute_low = np.minimum.accumulate(minute_prices)
-                
-                scale_high = day_data['high'] / minute_high[-1]
-                scale_low = day_data['low'] / minute_low[-1]
-                
-                minute_high *= scale_high
-                minute_low *= scale_low
-                
-                # Create minute-by-minute OHLCV data
-                intraday_df = pd.DataFrame({
-                    'datetime': times,
-                    'open': minute_prices,
-                    'high': minute_high,
-                    'low': minute_low,
-                    'close': minute_prices,
-                    'volume': np.random.randint(1000, 100000, size=len(times))
-                })
-                
-                # Set index to datetime
-                intraday_df.set_index('datetime', inplace=True)
-                
-                # Calculate VWAP
-                typical_price = (intraday_df['high'] + intraday_df['low'] + intraday_df['close']) / 3
-                intraday_df['vwap'] = (typical_price * intraday_df['volume']).cumsum() / intraday_df['volume'].cumsum()
-                
-                # Store intraday data
-                intraday_data[date.strftime('%Y-%m-%d')] = intraday_df
-            
-            # Store data for this symbol
-            self.historical_data[symbol] = {
-                'daily': daily_data,
-                'intraday': intraday_data
-            }
-        
-        print("Historical data generation complete.")
-    
-    def get_intraday_data(self, symbol, interval='1m', lookback_days=1):
-        """
-        Get intraday price data for backtesting.
-        
-        Parameters:
-        -----------
-        symbol: str
-            Stock ticker symbol
-        interval: str
-            Time interval for data points (e.g., '1m', '5m', '15m')
-        lookback_days: int
-            Number of days to look back
-            
-        Returns:
-        --------
-        pandas.DataFrame: OHLCV data for the specified stock and timeframe
-        """
-        if symbol not in self.historical_data:
-            return pd.DataFrame()
-        
-        # Get intraday data for the current date
-        date_str = self.current_date.strftime('%Y-%m-%d')
-        
-        if date_str not in self.historical_data[symbol]['intraday']:
-            return pd.DataFrame()
-        
-        # Get data up to current simulation time
-        intraday_data = self.historical_data[symbol]['intraday'][date_str]
-        current_data = intraday_data.loc[intraday_data.index <= self.current_datetime]
-        
-        # If lookback spans multiple days, combine with previous days
-        if lookback_days > 1:
-            additional_days = lookback_days - 1
-            prev_date = self.current_date - timedelta(days=additional_days)
-            
-            # Get all dates between prev_date and current_date
-            all_dates = [
-                (prev_date + timedelta(days=i)).strftime('%Y-%m-%d')
-                for i in range(additional_days + 1)
-            ]
-            
-            # Filter to only include weekdays that have data
-            valid_dates = [
-                date for date in all_dates
-                if date in self.historical_data[symbol]['intraday']
-            ]
-            
-            # Combine data from valid dates
-            if len(valid_dates) > 1:
-                combined_data = []
-                
-                for date in valid_dates[:-1]:  # Exclude current date
-                    combined_data.append(self.historical_data[symbol]['intraday'][date])
-                
-                # Add current date data
-                combined_data.append(current_data)
-                
-                # Concatenate all data
-                current_data = pd.concat(combined_data)
-        
-        # Resample to requested interval if needed
-        if interval != '1m':
-            # Determine pandas resampling frequency
-            freq_map = {
-                '1m': '1min',
-                '5m': '5min',
-                '15m': '15min',
-                '30m': '30min',
-                '1h': '1H',
-                '1d': '1D'
-            }
-            
-            freq = freq_map.get(interval, '1min')
-            
-            # Resample data
-            resampled = current_data.resample(freq).agg({
-                'open': 'first',
-                'high': 'max',
-                'low': 'min',
-                'close': 'last',
-                'volume': 'sum',
-                'vwap': 'last'
-            })
-            
-            return resampled
-        
-        return current_data
-    
-    def get_current_price(self, symbol):
-        """
-        Get the current market price for a stock.
-        
-        Parameters:
-        -----------
-        symbol: str
-            Stock ticker symbol
-            
-        Returns:
-        --------
-        float: Current market price, or None if not available
-        """
-        if symbol not in self.historical_data:
-            return None
-        
-        # Get intraday data for the current date
-        date_str = self.current_date.strftime('%Y-%m-%d')
-        
-        if date_str not in self.historical_data[symbol]['intraday']:
-            return None
-        
-        # Get data up to current simulation time
-        intraday_data = self.historical_data[symbol]['intraday'][date_str]
-        
-        # Find closest timestamp not exceeding current_datetime
-        valid_times = intraday_data.index[intraday_data.index <= self.current_datetime]
-        
-        if len(valid_times) == 0:
-            return None
-        
-        latest_time = valid_times[-1]
-        
-        # Return close price at latest time
-        return intraday_data.loc[latest_time, 'close']
-    
-    def get_tradable_stocks(self):
-        """Get a list of all tradable stocks for backtesting."""
-        # Create Stock objects for all stocks in our universe
-        from src.data.stock import Stock
-        
-        stocks = []
-        
-        for symbol in self.stock_universe:
-            # Skip if no data available for current date
-            date_str = self.current_date.strftime('%Y-%m-%d')
-            if (symbol not in self.historical_data or 
-                date_str not in self.historical_data[symbol]['intraday']):
-                continue
-            
-            # Create stock object
-            stock = Stock(symbol)
-            
-            # Get current price
-            current_price = self.get_current_price(symbol)
-            
-            if current_price is None:
-                continue
-            
-            # Set basic stock data
-            stock.current_price = current_price
-            
-            # Get daily data for yesterday to calculate gap
-            yesterday = self.current_date - timedelta(days=1)
-            yesterday_str = yesterday.strftime('%Y-%m-%d')
-            
-            # Find previous trading day
-            prev_day = None
-            for i in range(1, 10):  # Look back up to 10 days
-                check_day = self.current_date - timedelta(days=i)
-                check_day_str = check_day.strftime('%Y-%m-%d')
-                
-                if (symbol in self.historical_data and 
-                    'daily' in self.historical_data[symbol] and
-                    len(self.historical_data[symbol]['daily']) > 0):
-                    
-                    daily_data = self.historical_data[symbol]['daily']
-                    daily_dates = [d.strftime('%Y-%m-%d') for d in daily_data['date']]
-                    
-                    if check_day_str in daily_dates:
-                        daily_idx = daily_dates.index(check_day_str)
-                        prev_day = daily_data.iloc[daily_idx]
-                        break
-            
-            # Set previous close and calculate gap
-            if prev_day is not None:
-                stock.previous_close = prev_day['close']
-                
-                # Get opening price for today
-                intraday_data = self.historical_data[symbol]['intraday'][date_str]
-                opening_time = intraday_data.index[0]
-                stock.open_price = intraday_data.loc[opening_time, 'open']
-                
-                # Calculate gap percentage
-                if stock.previous_close > 0:
-                    stock.gap_percent = ((stock.open_price - stock.previous_close) / 
-                                       stock.previous_close * 100)
-            
-            # Optimize data for backtesting to guarantee trade execution
-            import random
-            
-            # Force gap to be high enough (5-15%)
-            stock.gap_percent = random.uniform(5.0, 15.0)
-            
-            # Force high relative volume (5-15x)
-            stock.current_volume = random.randint(5000000, 50000000)
-            stock.avg_volume_50d = random.randint(500000, 2000000)
-            stock.relative_volume = random.uniform(5.0, 15.0)
-            
-            # Force low float (1-5 million shares)
-            stock.shares_outstanding = random.randint(5000000, 50000000)
-            stock.shares_float = random.randint(1000000, 5000000)
-            
-            # Add dummy news
-            stock.has_news = True
-            stock.news_headline = f"{symbol} Reports Strong Quarterly Results"
-            stock.news_source = "Market News"
-            stock.news_timestamp = self.current_datetime
-            
-            # Force at least one pattern to be detected (CRITICAL CHANGE)
-            # This ensures trades will be executed
-            stock.has_bull_flag = True  # Force bull flag pattern to be detected
-            stock.has_micro_pullback = False
-            stock.has_new_high_breakout = False
-            
-            # Set price history for pattern detection
-            intraday_data = self.historical_data[symbol]['intraday'][date_str]
-            stock.set_price_history(intraday_data)
-            
-            # Add to list
-            stocks.append(stock)
-        
-        return stocks
-
-
-class BacktestNewsDataProvider(NewsDataProvider):
-    """News data provider for backtesting with simulated news."""
-    
-    def __init__(self, start_date, end_date):
-        """
-        Initialize the backtest news data provider.
-        
-        Parameters:
-        -----------
-        start_date: datetime
-            Start date for backtesting
-        end_date: datetime
-            End date for backtesting
-        """
-        super().__init__(api_key=None)
-        self.start_date = start_date
-        self.end_date = end_date
-        self.current_date = start_date
-        self.current_datetime = start_date.replace(hour=9, minute=30)
-        
-        # Simulated news storage
-        self.simulated_news = {}
-        
-        # Generate simulated news
-        self._generate_simulated_news()
-    
-    def set_current_date(self, date):
-        """Set the current simulation date."""
-        self.current_date = date
-        self.current_datetime = date.replace(hour=9, minute=30)
-    
-    def set_current_datetime(self, datetime_obj):
-        """Set the current simulation datetime."""
-        self.current_datetime = datetime_obj
-    
-    def _generate_simulated_news(self):
-        """Generate simulated news for backtesting."""
-        print("Generating simulated news...")
-        
-        # Generate news for a set of stock symbols
-        symbols = [
-            'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'TSLA', 'NVDA', 'AMD',
-            'INTC', 'NFLX', 'PYPL', 'SQ', 'TWTR', 'SNAP', 'UBER', 'LYFT',
-            'ZM', 'SHOP', 'ROKU', 'ETSY', 'BABA', 'NIO', 'PLTR', 'COIN',
-            'GME', 'AMC', 'BB', 'NOK', 'SPCE', 'TLRY'
-        ]
-        
-        # News templates
-        news_templates = [
-            "{symbol} Announces Quarterly Earnings",
-            "{symbol} Secures New Contract",
-            "{symbol} Receives FDA Approval for Key Product",
-            "{symbol} Expands into New Markets",
-            "{symbol} Partners with Major Industry Player",
-            "{symbol} Announces Stock Buyback Program",
-            "{symbol} Raises Guidance for Upcoming Quarter",
-            "{symbol} CEO Featured in Industry Interview",
-            "{symbol} Introduces New Product Line",
-            "{symbol} Reports Record Sales"
-        ]
-        
-        sources = ["Reuters", "Bloomberg", "CNBC", "Yahoo Finance", "MarketWatch"]
-        
-        # Generate news for each stock symbol
-        for symbol in symbols:
-            self.simulated_news[symbol] = []
-            
-            # Generate 1-3 news items per day
-            import random
-            
-            # Generate all dates between start_date and end_date
-            dates = pd.date_range(start=self.start_date, end=self.end_date, freq='D')
-            
-            # Skip weekends
-            dates = [date for date in dates if date.weekday() < 5]
-            
-            for date in dates:
-                # Random number of news items (1-3)
-                num_items = random.randint(1, 3)  # Always at least 1 news item
-                
-                for _ in range(num_items):
-                    # Pick a random template and source
-                    template = random.choice(news_templates)
-                    source = random.choice(sources)
-                    
-                    # Generate a headline
-                    headline = template.format(symbol=symbol)
-                    
-                    # Generate a random time during the trading day
-                    hours = random.randint(4, 20)  # 4 AM to 8 PM
-                    minutes = random.randint(0, 59)
-                    news_time = date.replace(hour=hours, minute=minutes)
-                    
-                    # Create a dummy URL
-                    url = f"https://example.com/news/{symbol.lower()}/{date.strftime('%Y%m%d')}/{_}"
-                    
-                    # Create the news item with high impact score
-                    news_item = {
-                        'headline': headline,
-                        'source': source,
-                        'url': url,
-                        'date': news_time,
-                        'score': random.randint(7, 10)  # High impact scores
-                    }
-                    
-                    # Add to simulated news
-                    self.simulated_news[symbol].append(news_item)
-        
-        print("Simulated news generation complete.")
-    
-    def get_stock_news(self, symbol, days=1, max_items=10):
-        """
-        Get news for a specific stock, filtered by the current simulation date.
-        
-        Parameters:
-        -----------
-        symbol: str
-            Stock ticker symbol
-        days: int
-            Number of days to look back
-        max_items: int
-            Maximum number of news items to return
-            
-        Returns:
-        --------
-        list: NewsItem objects for the specified stock
-        """
-        if symbol not in self.simulated_news:
-            return []
-        
-        # Filter news by date range
-        start_time = self.current_datetime - timedelta(days=days)
-        
-        filtered_news = [
-            item for item in self.simulated_news[symbol]
-            if start_time <= item['date'] <= self.current_datetime
-        ]
-        
-        # Sort by date (newest first)
-        filtered_news.sort(key=lambda x: x['date'], reverse=True)
-        
-        # Limit to requested number
-        if max_items > 0:
-            filtered_news = filtered_news[:max_items]
-        
-        # Convert to NewsItem objects
-        from src.data.news_data import NewsItem
-        
-        news_items = []
-        for item in filtered_news:
-            news_item = NewsItem(
-                headline=item['headline'],
-                source=item['source'],
-                url=item['url'],
-                date=item['date']
-            )
-            news_item.score = item['score']
-            news_items.append(news_item)
-        
-        return news_items
+        self.logger.info("Performance plots generated")
 
 
 def main():
@@ -967,64 +481,6 @@ def main():
     print(f"Total Trades: {results['summary']['total_trades']}")
     print(f"Win Rate: {results['summary']['win_rate']:.2f}")
     print(f"Profit Factor: {results['summary']['profit_factor']:.2f}")
-    
-    # Plot equity curve
-    if results['equity_curve']:
-        dates = [item['date'] for item in results['equity_curve']]
-        equity = [item['equity'] for item in results['equity_curve']]
-        
-        plt.figure(figsize=(12, 6))
-        plt.plot(dates, equity)
-        plt.title('Equity Curve')
-        plt.xlabel('Date')
-        plt.ylabel('Equity ($)')
-        plt.grid(True)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        
-        # Save the plot
-        plt.savefig('logs/equity_curve.png')
-        print("\nEquity curve saved to logs/equity_curve.png")
-        
-        # Create additional trade analysis charts if there were trades
-        if results['summary']['total_trades'] > 0:
-            # Create trades per day chart
-            trades_by_day = {}
-            for date, day_result in results['daily_results'].items():
-                trades_by_day[date] = day_result['trades_taken']
-            
-            dates = list(trades_by_day.keys())
-            trade_counts = list(trades_by_day.values())
-            
-            plt.figure(figsize=(12, 6))
-            plt.bar(dates, trade_counts)
-            plt.title('Trades per Day')
-            plt.xlabel('Date')
-            plt.ylabel('Number of Trades')
-            plt.grid(True, axis='y')
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            plt.savefig('logs/trades_per_day.png')
-            print("Trades per day chart saved to logs/trades_per_day.png")
-            
-            # Create P&L per day chart
-            pnl_by_day = {}
-            for date, day_result in results['daily_results'].items():
-                pnl_by_day[date] = day_result['net_pnl']
-            
-            dates = list(pnl_by_day.keys())
-            pnl_values = list(pnl_by_day.values())
-            
-            plt.figure(figsize=(12, 6))
-            plt.bar(dates, pnl_values, color=['green' if x >= 0 else 'red' for x in pnl_values])
-            plt.title('Daily P&L')
-            plt.xlabel('Date')
-            plt.ylabel('P&L ($)')
-            plt.grid(True, axis='y')
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            plt.savefig('logs/daily_pnl.png')
-            print("Daily P&L chart saved to logs/daily_pnl.png")
 
 
 if __name__ == '__main__':

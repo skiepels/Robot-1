@@ -150,3 +150,21 @@
 {"timestamp": "2025-05-06T18:33:50.220657", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 192, "message": "Backtest completed", "taskName": null}
 {"timestamp": "2025-05-06T18:33:50.220737", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 302, "message": "Generating backtest results", "taskName": null}
 {"timestamp": "2025-05-06T18:33:50.221766", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 395, "message": "Results saved to logs/backtest_results_20250101_to_20250131.json", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.428497", "level": "INFO", "module": "backtest", "function": "__init__", "line": 74, "message": "Backtest initialized from 2025-01-01 to 2025-01-07", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.428736", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 134, "message": "Starting backtest", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.428847", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 78, "message": "Setting up strategy components", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.718055", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 122, "message": "Trading enabled for simulation", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.718365", "level": "INFO", "module": "backtest", "function": "setup_components", "line": 130, "message": "Strategy components initialized", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.718556", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 152, "message": "Processing trading day: 2025-01-01 [1/7]", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.728376", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 228, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.728549", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 152, "message": "Processing trading day: 2025-01-02 [2/7]", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.738401", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 228, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.738551", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 152, "message": "Processing trading day: 2025-01-03 [3/7]", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.748731", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 228, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.748902", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 152, "message": "Processing trading day: 2025-01-06 [4/7]", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.756026", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 228, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.756223", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 152, "message": "Processing trading day: 2025-01-07 [5/7]", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.762554", "level": "INFO", "module": "backtest", "function": "run_trading_day", "line": 228, "message": "Found 0 morning trading opportunities", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.762908", "level": "INFO", "module": "backtest", "function": "run_backtest", "line": 195, "message": "Backtest completed", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.763123", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 284, "message": "Generating backtest results", "taskName": null}
+{"timestamp": "2025-05-06T23:50:35.763863", "level": "INFO", "module": "backtest", "function": "generate_results", "line": 377, "message": "Results saved to logs/backtest_results_20250101_to_20250107.json", "taskName": null}
