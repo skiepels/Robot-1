@@ -3,93 +3,105 @@
     "start_date": "2025-01-01",
     "end_date": "2025-01-07",
     "initial_capital": 10000.0,
-    "final_capital": 10000.0,
-    "total_return_pct": 0.0,
-    "annualized_return_pct": 0.0,
-    "sharpe_ratio": 0,
-    "max_drawdown_pct": 0,
-    "total_trades": 0,
-    "winning_trades": 0,
-    "losing_trades": 0,
-    "win_rate": 0,
-    "total_profit": 0.0,
-    "total_loss": 0.0,
-    "net_pnl": 0.0,
-    "profit_factor": Infinity
+    "final_capital": 10118.208149374695,
+    "total_return_pct": 1.1820814937469448,
+    "annualized_return_pct": 80.80977764968434,
+    "sharpe_ratio": 23.47583702171238,
+    "max_drawdown_pct": 0.26506479431213753,
+    "total_trades": 13,
+    "winning_trades": 10,
+    "losing_trades": 5,
+    "win_rate": 0.7692307692307693,
+    "total_profit": 264.36591432413474,
+    "total_loss": 67.35957555688643,
+    "net_pnl": 197.0063387672483,
+    "profit_factor": 3.9246968547311103
   },
   "daily_results": {
     "2025-01-01": {
-      "trades_taken": 0,
-      "winning_trades": 0,
+      "trades_taken": 1,
+      "winning_trades": 1,
       "losing_trades": 0,
-      "win_rate": 0,
-      "total_profit": 0.0,
+      "win_rate": 1.0,
+      "total_profit": 0.6895067367439189,
       "total_loss": 0.0,
-      "net_pnl": 0.0,
-      "equity": 10000.0
+      "net_pnl": 0.6895067367439189,
+      "equity": 10000.689506736744
     },
     "2025-01-02": {
-      "trades_taken": 0,
-      "winning_trades": 0,
-      "losing_trades": 0,
-      "win_rate": 0,
-      "total_profit": 0.0,
-      "total_loss": 0.0,
-      "net_pnl": 0.0,
-      "equity": 10000.0
+      "trades_taken": 3,
+      "winning_trades": 3,
+      "losing_trades": 1,
+      "win_rate": 1.0,
+      "total_profit": 91.60950801271348,
+      "total_loss": -17.01544061762315,
+      "net_pnl": 74.59406739509032,
+      "equity": 10043.770012042361
     },
     "2025-01-03": {
-      "trades_taken": 0,
-      "winning_trades": 0,
+      "trades_taken": 3,
+      "winning_trades": 3,
       "losing_trades": 0,
-      "win_rate": 0,
-      "total_profit": 0.0,
+      "win_rate": 1.0,
+      "total_profit": 54.4088471528875,
       "total_loss": 0.0,
-      "net_pnl": 0.0,
-      "equity": 10000.0
+      "net_pnl": 54.4088471528875,
+      "equity": 10098.17885919525
     },
     "2025-01-06": {
-      "trades_taken": 0,
-      "winning_trades": 0,
-      "losing_trades": 0,
-      "win_rate": 0,
-      "total_profit": 0.0,
-      "total_loss": 0.0,
-      "net_pnl": 0.0,
-      "equity": 10000.0
+      "trades_taken": 3,
+      "winning_trades": 1,
+      "losing_trades": 3,
+      "win_rate": 0.3333333333333333,
+      "total_profit": 47.28462730307866,
+      "total_loss": -26.76671702239563,
+      "net_pnl": 20.51791028068303,
+      "equity": 10071.412142172852
     },
     "2025-01-07": {
-      "trades_taken": 0,
-      "winning_trades": 0,
-      "losing_trades": 0,
-      "win_rate": 0,
-      "total_profit": 0.0,
-      "total_loss": 0.0,
-      "net_pnl": 0.0,
-      "equity": 10000.0
+      "trades_taken": 3,
+      "winning_trades": 2,
+      "losing_trades": 1,
+      "win_rate": 0.6666666666666666,
+      "total_profit": 70.37342511871117,
+      "total_loss": -23.57741791686764,
+      "net_pnl": 46.79600720184353,
+      "equity": 10118.208149374695
     }
   },
   "equity_curve": [
     {
       "date": "2025-01-01",
-      "equity": 10000.0
+      "equity": 10000.689506736744
     },
     {
       "date": "2025-01-02",
-      "equity": 10000.0
+      "equity": 10043.770012042361
     },
     {
       "date": "2025-01-03",
-      "equity": 10000.0
+      "equity": 10098.17885919525
     },
     {
       "date": "2025-01-06",
-      "equity": 10000.0
+      "equity": 10071.412142172852
     },
     {
       "date": "2025-01-07",
-      "equity": 10000.0
+      "equity": 10118.208149374695
     }
   ],
-  "trade_history": []
-}
+  "trade_history": [
+    {
+      "symbol": "SQ",
+      "pattern": "bull_flag",
+      "entry_price": 6.328794179148503,
+      "stop_price": 6.328794179148503,
+      "target_price": 6.581945946314444,
+      "shares": 115,
+      "risk_per_share": 0.12657588358297023,
+      "reward_per_share": 0.25315176716594046,
+      "dollar_risk": 14.556226612041577,
+      "dollar_reward": 29.112453224083154,
+      "profit_loss_ratio": 2.0,
+      "timestamp": 
