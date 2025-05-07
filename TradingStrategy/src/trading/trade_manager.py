@@ -44,11 +44,11 @@ class TradeManager:
         self.completed_trades = []
         
         # Trading parameters
-        self.min_price = 1.0
+        self.min_price = 2.0  # Changed from 1.0 to 2.0 to match Cameron's criteria
         self.max_price = 20.0
-        self.min_gap_pct = 10.0
-        self.min_rel_volume = 5.0
-        self.max_float = 10_000_000
+        self.min_gap_pct = 10.0  # Changed back to 10.0 to match Cameron's criteria
+        self.min_rel_volume = 5.0  # Changed back to 5.0 to match Cameron's criteria
+        self.max_float = 10_000_000  # Changed back to 10M to match Cameron's criteria
         
         # Trade execution flags
         self.is_trading_enabled = False
@@ -80,6 +80,10 @@ class TradeManager:
             'total_loss': 0.0,
             'gross_pnl': 0.0
         }
+        
+        # Clear active trades at the start of a new session
+        self.active_trades = {}
+        self.pending_orders = {}
         
         # Check market session
         self.condition_tracker.update_market_session()
@@ -196,14 +200,30 @@ class TradeManager:
         # Get entry, stop, and target prices
         entry_price = stock.get_optimal_entry()
         stop_price = stock.get_optimal_stop_loss()
-        target_price = stock.get_optimal_target()
+        
+        # FIX: Improved stop-loss calculation - ensure stop is not too tight
+        # Ross Cameron often gives stops a bit more room to breathe
+        # If the stop is less than 2% away, adjust it to be at least 2% away
+        stop_pct = (entry_price - stop_price) / entry_price * 100
+        if stop_pct < 2.0:
+            stop_price = entry_price * 0.98  # 2% below entry
+            logger.info(f"Adjusted stop-loss to 2% below entry: ${stop_price:.2f}")
+            
+        # Calculate target price based on Ross Cameron's 2:1 profit-to-loss ratio
+        risk_per_share = entry_price - stop_price
+        target_price = entry_price + (risk_per_share * 2.0)
         
         # Check if prices are valid
         if entry_price is None or stop_price is None or target_price is None:
             logger.warning(f"Invalid price levels for {stock.symbol}")
             return None
         
-        # Calculate position size
+        # Recalculate to ensure correct profit-to-loss ratio
+        risk_per_share = entry_price - stop_price
+        reward_per_share = target_price - entry_price
+        profit_loss_ratio = reward_per_share / risk_per_share
+        
+        # Calculate position size according to Ross Cameron's 1% risk rule
         shares = self.risk_manager.calculate_position_size(entry_price, stop_price, stock)
         
         # Check if position size is valid
@@ -228,16 +248,18 @@ class TradeManager:
             'stop_price': stop_price,
             'target_price': target_price,
             'shares': shares,
-            'risk_per_share': entry_price - stop_price,
-            'reward_per_share': target_price - entry_price,
-            'dollar_risk': (entry_price - stop_price) * shares,
-            'dollar_reward': (target_price - entry_price) * shares,
-            'profit_loss_ratio': (target_price - entry_price) / (entry_price - stop_price),
+            'risk_per_share': risk_per_share,
+            'reward_per_share': reward_per_share,
+            'dollar_risk': risk_per_share * shares,
+            'dollar_reward': reward_per_share * shares,
+            'profit_loss_ratio': profit_loss_ratio,
             'timestamp': datetime.now()
         }
         
         logger.info(f"Trade opportunity validated for {stock.symbol}: {shares} shares, " +
-                   f"Entry: ${entry_price:.2f}, Stop: ${stop_price:.2f}, Target: ${target_price:.2f}")
+                   f"Entry: ${entry_price:.2f}, Stop: ${stop_price:.2f}, Target: ${target_price:.2f}, " +
+                   f"Risk: ${risk_per_share:.2f}/share, Reward: ${reward_per_share:.2f}/share, " +
+                   f"P/L Ratio: {profit_loss_ratio:.2f}")
         
         return trade_params
     
@@ -395,10 +417,24 @@ class TradeManager:
                 logger.info(f"Target reached for {symbol} at ${current_price:.2f}, P&L: ${unrealized_pnl:.2f}")
                 continue
             
-            # Check for trailing stop adjustments
-            if unrealized_pnl > 0 and unrealized_pnl > trade['dollar_risk']:
-                # Calculate new stop loss (break-even or better)
-                new_stop = max(trade['stop_price'], entry_price)
+            # Check for trailing stop adjustments - Ross Cameron's strategy for locking in profits
+            # Only trail once we've moved at least halfway to target
+            halfway_to_target = entry_price + ((trade['target_price'] - entry_price) / 2)
+            
+            if current_price >= halfway_to_target:
+                # Calculate new stop loss based on how close we are to target
+                progress_to_target = (current_price - entry_price) / (trade['target_price'] - entry_price)
+                
+                # As we get closer to target, trail tighter
+                if progress_to_target >= 0.8:  # 80% of the way to target
+                    # Trail to 75% of gains (aggressive trailing)
+                    new_stop = entry_price + ((current_price - entry_price) * 0.75)
+                elif progress_to_target >= 0.5:  # 50-80% of the way
+                    # Trail to breakeven plus 50% of gains
+                    new_stop = entry_price + ((current_price - entry_price) * 0.5)
+                else:  # 50-60% of the way
+                    # Trail to breakeven
+                    new_stop = max(trade['stop_price'], entry_price)
                 
                 # Only update if it's higher than current stop
                 if new_stop > trade['stop_price']:
@@ -417,13 +453,13 @@ class TradeManager:
                     logger.info(f"Trailing stop adjusted for {symbol}: ${trade['stop_price']:.2f} -> ${new_stop:.2f}")
             
             # Check for adding to winner (Ross Cameron's strategy)
-            if (unrealized_pnl > 0 and 
-                unrealized_pnl > trade['dollar_risk'] and 
+            # Only add to position if we've reached halfway to target and have a cushion
+            if (current_price >= halfway_to_target and 
                 self.risk_manager.cushion_achieved and
                 'add_shares_processed' not in trade):
                 
-                # Calculate additional shares
-                additional_shares = min(shares, self.risk_manager.calculate_position_size(
+                # Calculate additional shares - limit to 50% of original position
+                additional_shares = min(shares // 2, self.risk_manager.calculate_position_size(
                     current_price, trade['stop_price']))
                 
                 if additional_shares > 0:
@@ -504,8 +540,9 @@ class TradeManager:
         --------
         dict: Closed trade information
         """
+        # FIX: Check if the trade exists in active_trades
         if symbol not in self.active_trades:
-            logger.warning(f"Trade not found for {symbol}")
+            logger.warning(f"Position not found: {symbol}")
             return None
         
         trade = self.active_trades[symbol]
@@ -556,8 +593,12 @@ class TradeManager:
         duration = trade['exit_time'] - trade['execution_time']
         trade['duration_seconds'] = duration.total_seconds()
         
-        # Update risk manager
-        self.risk_manager.close_position(symbol, executed_exit_price, exit_reason)
+        # Close position in risk manager (if it exists there)
+        try:
+            if symbol in self.risk_manager.open_positions:
+                self.risk_manager.close_position(symbol, executed_exit_price, exit_reason)
+        except Exception as e:
+            logger.warning(f"Error closing position in risk manager for {symbol}: {e}")
         
         # Update daily stats
         if realized_pnl > 0:

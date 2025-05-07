@@ -30,6 +30,14 @@ from src.utils.logger import setup_logger
 # Import the mock data providers
 from mock_data_providers import MockMarketDataProvider, MockNewsDataProvider
 
+# Custom JSON Encoder for handling datetime objects
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder for datetime objects"""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
+        return super().default(obj)
+
 
 class BacktestEngine:
     """Backtesting engine for the day trading strategy."""
@@ -95,9 +103,9 @@ class BacktestEngine:
         # Initialize risk manager
         self.risk_manager = RiskManager(
             initial_capital=self.initial_capital,
-            max_risk_per_trade_pct=1.0,
+            max_risk_per_trade_pct=1.0,  # Risk 1% per trade as per Cameron's rule
             daily_max_loss_pct=3.0,
-            profit_loss_ratio=2.0,
+            profit_loss_ratio=2.0,  # 2:1 profit-to-loss ratio as per Cameron's rule
             max_open_positions=3
         )
         
@@ -110,12 +118,12 @@ class BacktestEngine:
             broker_api=None  # No broker for backtesting
         )
         
-        # Set trading parameters
-        self.trade_manager.min_price = 1.0
+        # Set trading parameters - amended to better match Ross Cameron's criteria
+        self.trade_manager.min_price = 2.0  # Changed from 1.0 to 2.0 to match Cameron's criteria
         self.trade_manager.max_price = 20.0
-        self.trade_manager.min_gap_pct = 5.0  # Reduced from 10.0 to get more trades
-        self.trade_manager.min_rel_volume = 2.0  # Reduced from 5.0 to get more trades
-        self.trade_manager.max_float = 20_000_000  # Increased from 10M to get more trades
+        self.trade_manager.min_gap_pct = 10.0  # Changed back to 10.0 to match Cameron's criteria
+        self.trade_manager.min_rel_volume = 5.0  # Changed back to 5.0 to match Cameron's criteria
+        self.trade_manager.max_float = 10_000_000  # Changed back to 10M to match Cameron's criteria
         
         # Enable trading
         self.trade_manager.is_trading_enabled = True
@@ -268,6 +276,10 @@ class BacktestEngine:
         opportunity_count = len(morning_opportunities)
         self.logger.info(f"Found {opportunity_count} morning trading opportunities")
         
+        # Clear trade manager active trades at the start of each day
+        # FIX: Clear active trades dictionary at the start of each day to avoid "Position not found" errors
+        self.trade_manager.active_trades = {}
+        
         # Process each opportunity
         for i, stock in enumerate(morning_opportunities):
             if i >= 3:  # Limit to 3 trades per day to avoid overtrading
@@ -289,7 +301,7 @@ class BacktestEngine:
                         'pattern': 'bull_flag',
                         'entry_price': stock.current_price,
                         'stop_price': stock.current_price * 0.98,  # 2% stop loss
-                        'target_price': stock.current_price * 1.04,  # 4% profit target
+                        'target_price': stock.current_price * 1.04,  # 4% profit target (2:1 ratio for 2% risk)
                         'shares': 100,  # Fixed size for testing
                         'risk_per_share': stock.current_price * 0.02,
                         'reward_per_share': stock.current_price * 0.04,
@@ -314,14 +326,17 @@ class BacktestEngine:
                 
                 self.logger.info(f"DEBUG: Trade validation: {is_valid}, Reason: {reason}")
                 
-                # Execute trade
-                executed_trade = self.trade_manager.execute_trade(trade_params)
-                
-                if executed_trade:
-                    self.logger.info(f"Executed morning trade: {stock.symbol} - {executed_trade['executed_shares']} shares at ${executed_trade['executed_price']:.2f}")
-                    self.trade_history.append(executed_trade)
+                # FIX: Only execute trade if validation passes
+                if is_valid:
+                    executed_trade = self.trade_manager.execute_trade(trade_params)
+                    
+                    if executed_trade:
+                        self.logger.info(f"Executed morning trade: {stock.symbol} - {executed_trade['executed_shares']} shares at ${executed_trade['executed_price']:.2f}")
+                        self.trade_history.append(executed_trade)
+                    else:
+                        self.logger.info(f"Failed to execute trade for {stock.symbol}")
                 else:
-                    self.logger.info(f"Failed to execute trade for {stock.symbol}")
+                    self.logger.info(f"Skipping invalid trade for {stock.symbol}: {reason}")
             except Exception as e:
                 self.logger.error(f"Error processing trade for {stock.symbol}: {str(e)}")
         
@@ -351,8 +366,13 @@ class BacktestEngine:
         for symbol in active_trades:
             current_price = self.market_data.get_current_price(symbol)
             if current_price:
-                self.trade_manager._exit_trade(symbol, current_price, 'end_of_day')
-                self.logger.info(f"Closed position at end of day: {symbol} at ${current_price:.2f}")
+                try:
+                    # FIX: Check if the symbol exists in active_trades before exiting
+                    if symbol in self.trade_manager.active_trades:
+                        self.trade_manager._exit_trade(symbol, current_price, 'end_of_day')
+                        self.logger.info(f"Closed position at end of day: {symbol} at ${current_price:.2f}")
+                except Exception as e:
+                    self.logger.error(f"Error closing position for {symbol}: {str(e)}")
     
     def generate_results(self):
         """Generate and return backtest results."""
@@ -447,7 +467,8 @@ class BacktestEngine:
         # Save results to JSON file
         results_file = f"backtest_results_{self.start_date.strftime('%Y%m%d')}_to_{self.end_date.strftime('%Y%m%d')}.json"
         with open(os.path.join('logs', results_file), 'w') as f:
-            json.dump(results, f, indent=2)
+            # Use custom DateTimeEncoder to handle datetime objects
+            json.dump(results, f, indent=2, cls=DateTimeEncoder)
         
         self.logger.info(f"Results saved to logs/{results_file}")
         
