@@ -675,3 +675,124 @@ class TradeManager:
             'cushion_achieved': self.risk_manager.cushion_achieved if self.risk_manager else False,
             'reduced_position_size': self.risk_manager.reduced_position_size if self.risk_manager else True
         }
+# In src/trading/trade_manager.py
+
+# Add this to the imports section
+from ib_broker import IBBroker
+
+# Then modify the execute_trade method:
+
+def execute_trade(self, trade_params):
+    """
+    Execute a trade based on the given parameters.
+    
+    Parameters:
+    -----------
+    trade_params: dict
+        Trade parameters from evaluate_opportunity
+        
+    Returns:
+    --------
+    dict: Executed trade information
+    """
+    if not self.is_trading_enabled:
+        logger.warning("Trading is disabled, execution aborted")
+        return None
+    
+    symbol = trade_params['symbol']
+    entry_price = trade_params['entry_price']
+    stop_price = trade_params['stop_price']
+    target_price = trade_params['target_price']
+    shares = trade_params['shares']
+    
+    logger.info(f"Executing trade for {symbol}: {shares} shares at ${entry_price:.2f}")
+    
+    # Check if we're in simulation mode
+    if self.is_simulated:
+        # Simulate trade execution
+        executed_price = entry_price
+        executed_shares = shares
+        commission = 0.0
+        order_id = f"SIM_{symbol}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        logger.info(f"Simulated trade executed for {symbol}: {executed_shares} shares at ${executed_price:.2f}")
+    else:
+        # Execute trade with broker API
+        try:
+            # Submit entry order
+            order_result = self.broker.submit_order(
+                symbol=symbol,
+                quantity=shares,
+                side='buy',
+                order_type='limit',
+                time_in_force='day',
+                limit_price=entry_price
+            )
+            
+            if not order_result:
+                logger.error(f"Failed to submit order for {symbol}")
+                return None
+            
+            # Get order details
+            order_id = order_result['id']
+            executed_price = entry_price  # Assume limit price execution for now
+            executed_shares = shares
+            commission = 0.0  # We'll calculate this separately
+            
+            logger.info(f"Trade executed for {symbol}: {executed_shares} shares at ${executed_price:.2f}")
+            
+            # Set stop loss order
+            stop_order = self.broker.submit_order(
+                symbol=symbol,
+                quantity=shares,
+                side='sell',
+                order_type='stop',
+                stop_price=stop_price
+            )
+            
+            if stop_order:
+                logger.info(f"Stop loss order placed at ${stop_price:.2f}")
+                
+            # Set take profit order
+            profit_order = self.broker.submit_order(
+                symbol=symbol,
+                quantity=shares,
+                side='sell',
+                order_type='limit',
+                limit_price=target_price
+            )
+            
+            if profit_order:
+                logger.info(f"Take profit order placed at ${target_price:.2f}")
+                
+        except Exception as e:
+            logger.error(f"Error executing trade for {symbol}: {e}")
+            return None
+    
+    # Update trade parameters with execution details
+    trade_params['executed_price'] = executed_price
+    trade_params['executed_shares'] = executed_shares
+    trade_params['commission'] = commission
+    trade_params['order_id'] = order_id
+    trade_params['execution_time'] = datetime.now()
+    trade_params['status'] = 'open'
+    trade_params['stop_order_id'] = stop_order['id'] if stop_order else None
+    trade_params['profit_order_id'] = profit_order['id'] if profit_order else None
+    
+    # Add to active trades
+    self.active_trades[symbol] = trade_params
+    
+    # Add position to risk manager
+    self.risk_manager.add_position(
+        symbol=symbol,
+        entry_price=executed_price,
+        stop_price=trade_params['stop_price'],
+        target_price=trade_params['target_price'],
+        shares=executed_shares
+    )
+    
+    # Update daily stats
+    self.daily_stats['trades_taken'] += 1
+    
+    # Return executed trade information
+    return trade_params    
