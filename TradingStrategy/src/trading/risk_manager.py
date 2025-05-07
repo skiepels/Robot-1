@@ -1,525 +1,834 @@
 """
-Risk Manager
+Trade Manager
 
-This module implements risk management strategies based on Ross Cameron's approach,
-including position sizing, profit targets, stop losses, and overall portfolio risk management.
+This module handles the execution and management of trades based on the 
+trading strategy. It coordinates between scanning for opportunities,
+risk management, and order execution.
 """
 
-import pandas as pd
-import numpy as np
+import os
 import logging
 from datetime import datetime, timedelta
+import time
+from dotenv import load_dotenv
+
+from src.entry.candlestick import CandlestickPatterns
+from src.indicators.moving_averages import MovingAverages
+from src.indicators.macd import MACD
 
 logger = logging.getLogger(__name__)
 
+# Load environment variables
+load_dotenv()
 
-class RiskManager:
-    def __init__(self, initial_capital, max_risk_per_trade_pct=1.0, daily_max_loss_pct=3.0, 
-                profit_loss_ratio=2.0, max_open_positions=3):
+
+class TradeManager:
+    def __init__(self, market_data_provider, scanner, risk_manager, condition_tracker, broker_api=None):
         """
-        Initialize the risk manager.
+        Initialize the trade manager.
         
         Parameters:
         -----------
-        initial_capital: float
-            Starting capital for the trading account
-        max_risk_per_trade_pct: float
-            Maximum percentage of account to risk on any single trade
-        daily_max_loss_pct: float
-            Maximum percentage of account to lose in a single day
-        profit_loss_ratio: float
-            Target ratio of profit to loss (e.g., 2.0 means targeting $2 profit for every $1 risked)
-        max_open_positions: int
-            Maximum number of open positions allowed at once
+        market_data_provider: MarketDataProvider
+            Provider for market data
+        scanner: StockScanner
+            Scanner for finding trading opportunities
+        risk_manager: RiskManager
+            Manager for risk and position sizing
+        condition_tracker: ConditionTracker
+            Tracker for market conditions and patterns
+        broker_api: object, optional
+            API for trade execution with a broker
         """
-        self.initial_capital = initial_capital
-        self.current_capital = initial_capital
-        self.max_risk_per_trade_pct = max_risk_per_trade_pct
-        self.daily_max_loss_pct = daily_max_loss_pct
-        self.profit_loss_ratio = profit_loss_ratio
-        self.max_open_positions = max_open_positions
+        self.market_data = market_data_provider
+        self.scanner = scanner
+        self.risk_manager = risk_manager
+        self.condition_tracker = condition_tracker
+        self.broker = broker_api
         
-        # Track daily P&L
-        self.daily_pnl = 0.0
-        self.total_pnl = 0.0
+        self.active_trades = {}
+        self.pending_orders = {}
+        self.completed_trades = []
         
-        # Track trade performance
-        self.trade_history = []
-        self.open_positions = {}
-        self.consecutive_losses = 0
+        # Initialize pattern detection and indicators
+        self.candlestick_patterns = CandlestickPatterns()
+        self.moving_averages = MovingAverages()
+        self.macd = MACD()
         
-        # Ross Cameron's strategy for small accounts
-        self.quarter_daily_goal = 0.005  # 0.5% of account as quarter daily goal
-        self.daily_goal = 0.02  # 2% of account as daily goal
-        self.cushion_achieved = False
-        self.reduced_position_size = True  # Start with reduced size
+        # Trading parameters
+        self.min_price = 2.0
+        self.max_price = 20.0
+        self.min_gap_pct = 10.0
+        self.min_rel_volume = 5.0
+        self.max_float = 20_000_000
         
-        # Additional risk metrics
-        self.drawdown = 0.0
-        self.max_drawdown = 0.0
-        self.win_rate = 0.0
-        self.avg_win = 0.0
-        self.avg_loss = 0.0
+        # Trade execution flags
+        self.is_trading_enabled = False
+        self.is_simulated = broker_api is None
+        
+        # Performance tracking
+        self.daily_stats = {
+            'trades_taken': 0,
+            'winning_trades': 0,
+            'losing_trades': 0,
+            'total_profit': 0.0,
+            'total_loss': 0.0,
+            'gross_pnl': 0.0
+        }
+        
+        logger.info("Trade Manager initialized")
     
-    def calculate_position_size(self, entry_price, stop_price, stock=None):
+    def start_trading_session(self):
         """
-        Calculate the appropriate position size based on risk parameters.
+        Start a new trading session.
+        """
+        logger.info("Starting new trading session")
+        
+        # Reset daily metrics
+        self.risk_manager.reset_daily_metrics()
+        self.daily_stats = {
+            'trades_taken': 0,
+            'winning_trades': 0,
+            'losing_trades': 0,
+            'total_profit': 0.0,
+            'total_loss': 0.0,
+            'gross_pnl': 0.0
+        }
+        
+        # Clear active trades at the start of a new session
+        self.active_trades = {}
+        self.pending_orders = {}
+        
+        # Check market session
+        self.condition_tracker.update_market_session()
+        if not (self.condition_tracker.market_open or self.condition_tracker.pre_market):
+            logger.warning("Market is not open, trading will be limited to simulation")
+        
+        # Enable trading
+        self.is_trading_enabled = True
+        
+        logger.info("Trading session started")
+    
+    def stop_trading_session(self):
+        """
+        Stop the current trading session and close all open positions.
+        """
+        logger.info("Stopping trading session")
+        
+        # Disable trading
+        self.is_trading_enabled = False
+        
+        # Close all open positions
+        self._close_all_positions()
+        
+        # Log session summary
+        self._log_session_summary()
+        
+        logger.info("Trading session stopped")
+    
+    def scan_for_opportunities(self):
+        """
+        Scan the market for trading opportunities based on the strategy conditions.
+        
+        Returns:
+        --------
+        list: Actionable trading opportunities
+        """
+        if not self.is_trading_enabled:
+            logger.warning("Trading is disabled, scan aborted")
+            return []
+        
+        logger.info("Scanning for trading opportunities")
+        
+        # Update market conditions
+        self.condition_tracker.update_market_conditions()
+        
+        # Check if market is healthy for trading
+        if not self.condition_tracker.is_market_healthy():
+            logger.warning("Market conditions unfavorable, limiting trading")
+            return []
+        
+        # Scan for stocks meeting all 5 conditions
+        momentum_stocks = self.scanner.scan_for_momentum_stocks(
+            min_price=self.min_price,
+            max_price=self.max_price,
+            min_gap_pct=self.min_gap_pct,
+            min_rel_volume=self.min_rel_volume,
+            max_float=self.max_float
+        )
+        
+        if not momentum_stocks:
+            logger.info("No stocks meeting all 5 criteria found")
+            return []
+        
+        logger.info(f"Found {len(momentum_stocks)} stocks meeting all 5 criteria")
+        
+        # Track these stocks for entry patterns
+        tracked_stocks = self.condition_tracker.scan_for_trading_conditions(
+            momentum_stocks,
+            min_gap_pct=self.min_gap_pct,
+            min_rel_volume=self.min_rel_volume,
+            max_float=self.max_float
+        )
+        
+        # Get actionable opportunities
+        opportunities = self.condition_tracker.get_actionable_stocks(max_stocks=5)
+        
+        if not opportunities:
+            logger.info("No actionable trading opportunities found")
+            return []
+        
+        logger.info(f"Found {len(opportunities)} actionable trading opportunities")
+        
+        # Enhance opportunities with technical indicators
+        enhanced_opportunities = []
+        
+        for stock in opportunities:
+            # Get intraday data
+            intraday_data = self.market_data.get_intraday_data(
+                stock.symbol, interval='1m', lookback_days=1
+            )
+            
+            if intraday_data.empty:
+                continue
+            
+            # Add EMAs
+            intraday_data = self.moving_averages.add_moving_averages(intraday_data)
+            
+            # Add MACD
+            intraday_data = self.macd.add_macd(intraday_data)
+            
+            # Check if price is above key EMAs
+            price_above_emas = self.moving_averages.is_price_above_key_emas(intraday_data)
+            
+            # Check for bullish MACD
+            bullish_macd = self.macd.is_bullish_momentum(intraday_data)
+            
+            # Only include stocks with favorable indicators
+            if price_above_emas and bullish_macd:
+                stock.set_price_history(intraday_data)
+                enhanced_opportunities.append(stock)
+                logger.info(f"Enhanced opportunity: {stock.symbol} - Above key EMAs: {price_above_emas}, Bullish MACD: {bullish_macd}")
+            else:
+                logger.info(f"Filtered out {stock.symbol} - Above key EMAs: {price_above_emas}, Bullish MACD: {bullish_macd}")
+        
+        return enhanced_opportunities
+    
+    def evaluate_opportunity(self, stock):
+        """
+        Evaluate a trading opportunity and determine entry parameters.
         
         Parameters:
         -----------
-        entry_price: float
-            Planned entry price for the trade
-        stop_price: float
-            Planned stop loss price for the trade
-        stock: Stock, optional
-            Stock object for additional risk assessment
+        stock: Stock
+            Stock object with pattern detection
             
         Returns:
         --------
-        int: Number of shares to trade
+        dict: Trade parameters if opportunity is valid, None otherwise
         """
-        if entry_price <= 0 or stop_price <= 0 or entry_price <= stop_price:
-            logger.warning("Invalid prices for position sizing calculation")
-            return 0
+        if not self.is_trading_enabled:
+            logger.warning("Trading is disabled, evaluation aborted")
+            return None
         
-        # Calculate risk per share
-        risk_per_share = entry_price - stop_price
+        # Get pattern information
+        pattern_signals = self.candlestick_patterns.detect_entry_signal(stock.price_history)
         
-        # Calculate dollar risk allowance based on account size
-        dollar_risk = self.current_capital * (self.max_risk_per_trade_pct / 100)
+        if not pattern_signals:
+            logger.warning(f"No actionable pattern detected for {stock.symbol}")
+            return None
         
-        # Apply Ross Cameron's small account strategy
-        if self.reduced_position_size:
-            # Use quarter size until reaching the quarter daily goal
-            dollar_risk = dollar_risk / 4
-        
-        # Calculate share size
-        if risk_per_share > 0:
-            shares = int(dollar_risk / risk_per_share)
+        # Determine primary pattern type (prioritize based on strategy)
+        if 'bull_flag' in pattern_signals:
+            pattern_type = 'bull_flag'
+        elif 'new_high_breakout' in pattern_signals:
+            pattern_type = 'new_high_breakout'
+        elif 'micro_pullback' in pattern_signals:
+            pattern_type = 'micro_pullback'
         else:
-            shares = 0
+            logger.warning(f"No actionable pattern detected for {stock.symbol}")
+            return None
         
-        # Apply additional constraints
-        if stock:
-            # Adjust for stock-specific risk
-            risk_level = stock.get_risk_level() if hasattr(stock, 'get_risk_level') else 5
-            risk_multiplier = max(1.0 - (risk_level / 20.0), 0.5)
-            shares = int(shares * risk_multiplier)
+        logger.info(f"Evaluating {pattern_type} opportunity for {stock.symbol}")
         
-        # Additional constraints based on current market conditions
-        if not self.cushion_achieved and self.daily_pnl <= 0:
-            # If no profit cushion and day is not green, limit size further
-            shares = int(shares * 0.75)
+        # Get entry, stop, and target prices
+        entry_price = self.candlestick_patterns.get_optimal_entry_price(stock.price_history, pattern_type)
+        stop_price = self.candlestick_patterns.get_optimal_stop_price(stock.price_history, pattern_type)
         
-        # Enforce minimum share size
-        if shares < 1:
-            shares = 0  # Skip trade if too small
-            
-        logger.info(f"Calculated position size: {shares} shares at ${entry_price:.2f} with stop at ${stop_price:.2f}")
+        # Ensure stop is not too tight
+        stop_pct = (entry_price - stop_price) / entry_price * 100
+        if stop_pct < 2.0:
+            stop_price = entry_price * 0.98  # At least 2% below entry
+            logger.info(f"Adjusted stop-loss to 2% below entry: ${stop_price:.2f}")
         
-        return shares
-    
-    def update_account_metrics(self, trade_pnl, is_win=None):
-        """
-        Update account metrics after a trade.
+        # Calculate target price based on profit-loss ratio
+        target_price = self.candlestick_patterns.get_optimal_target_price(
+            entry_price, stop_price, self.risk_manager.profit_loss_ratio
+        )
         
-        Parameters:
-        -----------
-        trade_pnl: float
-            Profit/loss from the trade
-        is_win: bool, optional
-            Explicitly specify if trade was a win
-        """
-        # Update daily P&L
-        self.daily_pnl += trade_pnl
-        self.total_pnl += trade_pnl
+        # Check if prices are valid
+        if entry_price is None or stop_price is None or target_price is None:
+            logger.warning(f"Invalid price levels for {stock.symbol}")
+            return None
         
-        # Update current capital
-        self.current_capital += trade_pnl
-        
-        # Update drawdown
-        if trade_pnl < 0:
-            self.drawdown += trade_pnl / self.initial_capital * 100.0
-            self.max_drawdown = min(self.max_drawdown, self.drawdown)
-        else:
-            self.drawdown = 0.0  # Reset drawdown after a profitable trade
-        
-        # Update win/loss streak
-        if is_win is None:
-            is_win = trade_pnl > 0
-            
-        if is_win:
-            self.consecutive_losses = 0
-        else:
-            self.consecutive_losses += 1
-        
-        # Update quarter goal achievement status
-        quarter_goal_amount = self.current_capital * self.quarter_daily_goal
-        self.cushion_achieved = self.daily_pnl >= quarter_goal_amount
-        
-        # Update position sizing strategy
-        self.reduced_position_size = not self.cushion_achieved
-        
-        # Update performance metrics
-        self._update_performance_metrics(trade_pnl, is_win)
-        
-        logger.info(f"Account metrics updated - Daily P&L: ${self.daily_pnl:.2f}, " +
-                   f"Cushion achieved: {self.cushion_achieved}, " +
-                   f"Consecutive losses: {self.consecutive_losses}")
-    
-    def validate_trade(self, symbol, entry_price, stop_price, target_price, shares):
-        """
-        Validate a potential trade against risk management rules.
-        
-        Parameters:
-        -----------
-        symbol: str
-            Stock symbol
-        entry_price: float
-            Planned entry price
-        stop_price: float
-            Planned stop loss price
-        target_price: float
-            Planned profit target price
-        shares: int
-            Number of shares
-            
-        Returns:
-        --------
-        tuple: (is_valid, reason_if_invalid)
-        """
-        # Check if price inputs are valid
-        if entry_price <= 0 or stop_price <= 0 or target_price <= 0:
-            return False, "Invalid price inputs"
-        
-        # Check if shares is valid
-        if shares <= 0:
-            return False, "Invalid share quantity"
-        
-        # Calculate risk and reward
+        # Recalculate to ensure correct profit-to-loss ratio
         risk_per_share = entry_price - stop_price
         reward_per_share = target_price - entry_price
+        profit_loss_ratio = reward_per_share / risk_per_share
         
-        # Check if stop is below entry for long trades
-        if risk_per_share <= 0:
-            return False, "Stop price must be below entry price for long trades"
+        # Calculate position size
+        shares = self.risk_manager.calculate_position_size(entry_price, stop_price, stock)
         
-        # Check profit-to-loss ratio
-        current_ratio = reward_per_share / risk_per_share if risk_per_share > 0 else 0
-        if current_ratio < self.profit_loss_ratio:
-            return False, f"Profit-to-loss ratio ({current_ratio:.2f}) below minimum ({self.profit_loss_ratio:.2f})"
+        # Check if position size is valid
+        if shares <= 0:
+            logger.warning(f"Invalid position size for {stock.symbol}")
+            return None
         
-        # Calculate total dollar risk
-        total_risk = risk_per_share * shares
-        max_allowed_risk = self.current_capital * (self.max_risk_per_trade_pct / 100)
-        
-        if total_risk > max_allowed_risk:
-            return False, f"Trade risk (${total_risk:.2f}) exceeds maximum allowed (${max_allowed_risk:.2f})"
-        
-        # Check daily loss limit
-        daily_max_loss = self.current_capital * (self.daily_max_loss_pct / 100)
-        if self.daily_pnl - total_risk < -daily_max_loss:
-            return False, f"Potential loss would exceed daily max loss (${daily_max_loss:.2f})"
-        
-        # Check consecutive losses
-        if self.consecutive_losses >= 3:
-            return False, f"Too many consecutive losses ({self.consecutive_losses})"
-        
-        # Check number of open positions
-        if len(self.open_positions) >= self.max_open_positions:
-            return False, f"Maximum open positions ({self.max_open_positions}) reached"
-        
-        # All checks passed
-        return True, "Trade validated"
-    
-    def add_position(self, symbol, entry_price, stop_price, target_price, shares):
-        """
-        Add a new position to the portfolio.
-        
-        Parameters:
-        -----------
-        symbol: str
-            Stock symbol
-        entry_price: float
-            Entry price
-        stop_price: float
-            Stop loss price
-        target_price: float
-            Profit target price
-        shares: int
-            Number of shares
-            
-        Returns:
-        --------
-        bool: True if position was added successfully
-        """
-        # Validate the trade first
-        is_valid, reason = self.validate_trade(symbol, entry_price, stop_price, target_price, shares)
+        # Validate the trade
+        is_valid, reason = self.risk_manager.validate_trade(
+            stock.symbol, entry_price, stop_price, target_price, shares
+        )
         
         if not is_valid:
-            logger.warning(f"Trade validation failed: {reason}")
-            return False
+            logger.warning(f"Trade validation failed for {stock.symbol}: {reason}")
+            return None
         
-        # Add position
-        position = {
-            'symbol': symbol,
+        # Create trade parameters
+        trade_params = {
+            'symbol': stock.symbol,
+            'pattern': pattern_type,
             'entry_price': entry_price,
-            'current_price': entry_price,
             'stop_price': stop_price,
             'target_price': target_price,
             'shares': shares,
-            'entry_time': datetime.now(),
-            'risk_per_share': entry_price - stop_price,
-            'profit_target': target_price - entry_price,
-            'dollar_risk': (entry_price - stop_price) * shares,
-            'status': 'open'
+            'risk_per_share': risk_per_share,
+            'reward_per_share': reward_per_share,
+            'dollar_risk': risk_per_share * shares,
+            'dollar_reward': reward_per_share * shares,
+            'profit_loss_ratio': profit_loss_ratio,
+            'timestamp': datetime.now()
         }
         
-        self.open_positions[symbol] = position
+        logger.info(f"Trade opportunity validated for {stock.symbol}: {shares} shares, " +
+                   f"Entry: ${entry_price:.2f}, Stop: ${stop_price:.2f}, Target: ${target_price:.2f}, " +
+                   f"Risk: ${risk_per_share:.2f}/share, Reward: ${reward_per_share:.2f}/share, " +
+                   f"P/L Ratio: {profit_loss_ratio:.2f}")
         
-        logger.info(f"Position added: {symbol} - {shares} shares at ${entry_price:.2f}, " +
-                   f"Stop: ${stop_price:.2f}, Target: ${target_price:.2f}")
-        
-        return True
+        return trade_params
     
-    def update_position(self, symbol, current_price):
+    def execute_trade(self, trade_params):
         """
-        Update an existing position with current price data.
+        Execute a trade based on the given parameters.
+        
+        Parameters:
+        -----------
+        trade_params: dict
+            Trade parameters from evaluate_opportunity
+            
+        Returns:
+        --------
+        dict: Executed trade information
+        """
+        if not self.is_trading_enabled:
+            logger.warning("Trading is disabled, execution aborted")
+            return None
+        
+        symbol = trade_params['symbol']
+        entry_price = trade_params['entry_price']
+        shares = trade_params['shares']
+        
+        logger.info(f"Executing trade for {symbol}: {shares} shares at ${entry_price:.2f}")
+        
+        # Check if we're in simulation mode
+        if self.is_simulated:
+            # Simulate trade execution
+            executed_price = entry_price
+            executed_shares = shares
+            commission = 0.0
+            order_id = f"SIM_{symbol}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            
+            logger.info(f"Simulated trade executed for {symbol}: {executed_shares} shares at ${executed_price:.2f}")
+        else:
+            # Execute trade with broker API
+            try:
+                # Submit order
+                order_result = self.broker.submit_order(
+                    symbol=symbol,
+                    quantity=shares,
+                    side='BUY',
+                    order_type='LIMIT',
+                    time_in_force='DAY',
+                    limit_price=entry_price
+                )
+                
+                if not order_result:
+                    logger.error(f"Failed to submit order for {symbol}")
+                    return None
+                
+                # Get execution details
+                order_id = order_result['id']
+                executed_price = entry_price  # Assume limit price execution
+                executed_shares = shares
+                commission = 0.0  # Will be updated later with actual commission
+                
+                logger.info(f"Trade executed for {symbol}: {executed_shares} shares at ${executed_price:.2f}")
+                
+                # Set stop loss and take profit orders
+                self._set_exit_orders(symbol, trade_params)
+                
+            except Exception as e:
+                logger.error(f"Error executing trade for {symbol}: {str(e)}")
+                return None
+        
+        # Update trade parameters with execution details
+        trade_params['executed_price'] = executed_price
+        trade_params['executed_shares'] = executed_shares
+        trade_params['commission'] = commission
+        trade_params['order_id'] = order_id
+        trade_params['execution_time'] = datetime.now()
+        trade_params['status'] = 'open'
+        
+        # Add to active trades
+        self.active_trades[symbol] = trade_params
+        
+        # Add position to risk manager
+        self.risk_manager.add_position(
+            symbol=symbol,
+            entry_price=executed_price,
+            stop_price=trade_params['stop_price'],
+            target_price=trade_params['target_price'],
+            shares=executed_shares
+        )
+        
+        # Update daily stats
+        self.daily_stats['trades_taken'] += 1
+        
+        # Return executed trade information
+        return trade_params
+    
+    def _set_exit_orders(self, symbol, trade_params):
+        """
+        Set stop loss and take profit orders.
         
         Parameters:
         -----------
         symbol: str
             Stock symbol
-        current_price: float
-            Current market price
+        trade_params: dict
+            Trade parameters
             
         Returns:
         --------
-        dict: Updated position data
+        tuple: (stop_order_id, target_order_id)
         """
-        if symbol not in self.open_positions:
-            logger.warning(f"Position not found: {symbol}")
-            return None
+        if self.is_simulated or not self.broker:
+            return None, None
         
-        position = self.open_positions[symbol]
-        position['current_price'] = current_price
-        
-        # Calculate unrealized P&L
-        entry_price = position['entry_price']
-        shares = position['shares']
-        unrealized_pnl = (current_price - entry_price) * shares
-        position['unrealized_pnl'] = unrealized_pnl
-        
-        # Check for stop loss or target price hit
-        if current_price <= position['stop_price']:
-            position['status'] = 'stop_triggered'
-        elif current_price >= position['target_price']:
-            position['status'] = 'target_reached'
-        
-        return position
-    
-    def close_position(self, symbol, exit_price=None, exit_reason='manual'):
-        """
-        Close an existing position.
-        
-        Parameters:
-        -----------
-        symbol: str
-            Stock symbol
-        exit_price: float, optional
-            Exit price (uses current price if not specified)
-        exit_reason: str, optional
-            Reason for closing the position
+        try:
+            shares = trade_params['executed_shares']
+            stop_price = trade_params['stop_price']
+            target_price = trade_params['target_price']
             
-        Returns:
-        --------
-        dict: Closed position data
-        """
-        if symbol not in self.open_positions:
-            logger.warning(f"Position not found: {symbol}")
-            return None
-        
-        position = self.open_positions[symbol]
-        
-        # Use provided exit price or current price
-        if exit_price is None:
-            exit_price = position['current_price']
-        
-        # Calculate realized P&L
-        entry_price = position['entry_price']
-        shares = position['shares']
-        realized_pnl = (exit_price - entry_price) * shares
-        
-        # Update position data
-        position['exit_price'] = exit_price
-        position['exit_time'] = datetime.now()
-        position['exit_reason'] = exit_reason
-        position['realized_pnl'] = realized_pnl
-        position['status'] = 'closed'
-        
-        # Calculate duration
-        duration = position['exit_time'] - position['entry_time']
-        position['duration_seconds'] = duration.total_seconds()
-        
-        # Update account metrics
-        is_win = realized_pnl > 0
-        self.update_account_metrics(realized_pnl, is_win)
-        
-        # Add to trade history
-        self.trade_history.append(position)
-        
-        # Remove from open positions
-        del self.open_positions[symbol]
-        
-        logger.info(f"Position closed: {symbol} - {shares} shares at ${exit_price:.2f}, " +
-                   f"P&L: ${realized_pnl:.2f}, Reason: {exit_reason}")
-        
-        return position
+            # Set stop loss order
+            stop_order = self.broker.submit_order(
+                symbol=symbol,
+                quantity=shares,
+                side='SELL',
+                order_type='STOP',
+                time_in_force='GTC',  # Good Till Canceled
+                stop_price=stop_price
+            )
+            
+            if stop_order:
+                stop_order_id = stop_order['id']
+                logger.info(f"Stop loss order placed at ${stop_price:.2f}")
+                trade_params['stop_order_id'] = stop_order_id
+            else:
+                logger.warning(f"Failed to place stop loss order for {symbol}")
+                stop_order_id = None
+            
+            # Set take profit order
+            profit_order = self.broker.submit_order(
+                symbol=symbol,
+                quantity=shares,
+                side='SELL',
+                order_type='LIMIT',
+                time_in_force='GTC',  # Good Till Canceled
+                limit_price=target_price
+            )
+            
+            if profit_order:
+                profit_order_id = profit_order['id']
+                logger.info(f"Take profit order placed at ${target_price:.2f}")
+                trade_params['profit_order_id'] = profit_order_id
+            else:
+                logger.warning(f"Failed to place take profit order for {symbol}")
+                profit_order_id = None
+            
+            return stop_order_id, profit_order_id
+            
+        except Exception as e:
+            logger.error(f"Error setting exit orders for {symbol}: {str(e)}")
+            return None, None
     
-    def check_for_adjustments(self):
+    def manage_active_trades(self):
         """
-        Check if any position adjustments are needed based on current market conditions.
+        Manage active trades based on current market conditions and risk management rules.
         
         Returns:
         --------
-        list: Recommended position adjustments
+        list: Actions taken on active trades
         """
-        adjustments = []
+        if not self.active_trades:
+            return []
         
-        # Check each open position
-        for symbol, position in self.open_positions.items():
-            current_price = position['current_price']
-            entry_price = position['entry_price']
-            shares = position['shares']
+        actions_taken = []
+        symbols_to_remove = []
+        
+        for symbol, trade in self.active_trades.items():
+            # Get current price
+            current_price = self.market_data.get_current_price(symbol)
+            
+            if current_price is None:
+                logger.warning(f"Could not get current price for {symbol}")
+                continue
+            
+            # Update trade with current price
+            trade['current_price'] = current_price
             
             # Calculate unrealized P&L
-            unrealized_pnl = (current_price - entry_price) * shares
+            entry_price = trade['executed_price']
+            shares = trade['executed_shares']
+            unrealized_pnl = (current_price - entry_price) * shares - trade.get('commission', 0.0)
+            trade['unrealized_pnl'] = unrealized_pnl
             
-            # Check for trailing stop adjustment
-            # If position is up significantly, adjust stop loss to lock in profit
-            if unrealized_pnl > 0 and unrealized_pnl > position['dollar_risk'] * 1.5:
-                # Move stop loss to break-even or better
-                new_stop = max(position['stop_price'], entry_price)
-                
-                adjustments.append({
+            # Check stop loss
+            if current_price <= trade['stop_price']:
+                action = {
                     'symbol': symbol,
-                    'action': 'adjust_stop',
-                    'current_stop': position['stop_price'],
-                    'new_stop': new_stop,
-                    'reason': 'Trailing stop adjustment - lock in profit'
-                })
-            
-            # Check for adding to winner (Ross Cameron's strategy)
-            # If position is up and looking strong, consider adding more shares
-            if (unrealized_pnl > 0 and 
-                unrealized_pnl > position['dollar_risk'] and 
-                self.cushion_achieved):
+                    'action': 'exit',
+                    'reason': 'Stop loss hit',
+                    'price': current_price,
+                    'pnl': unrealized_pnl
+                }
                 
-                # Calculate additional shares
-                additional_shares = min(shares, self.calculate_position_size(
-                    current_price, position['stop_price']))
+                # Exit the trade
+                self._exit_trade(symbol, current_price, 'stop_loss')
+                symbols_to_remove.append(symbol)
+                actions_taken.append(action)
+                
+                logger.info(f"Stop loss hit for {symbol} at ${current_price:.2f}, P&L: ${unrealized_pnl:.2f}")
+                continue
+            
+            # Check target price
+            if current_price >= trade['target_price']:
+                action = {
+                    'symbol': symbol,
+                    'action': 'exit',
+                    'reason': 'Target reached',
+                    'price': current_price,
+                    'pnl': unrealized_pnl
+                }
+                
+                # Exit the trade
+                self._exit_trade(symbol, current_price, 'target_reached')
+                symbols_to_remove.append(symbol)
+                actions_taken.append(action)
+                
+                logger.info(f"Target reached for {symbol} at ${current_price:.2f}, P&L: ${unrealized_pnl:.2f}")
+                continue
+            
+            # Check for trailing stop adjustments
+            # Only trail once we've moved at least halfway to target
+            halfway_to_target = entry_price + ((trade['target_price'] - entry_price) / 2)
+            
+            if current_price >= halfway_to_target:
+                # Calculate new stop loss based on how close we are to target
+                progress_to_target = (current_price - entry_price) / (trade['target_price'] - entry_price)
+                
+                # As we get closer to target, trail tighter
+                if progress_to_target >= 0.8:  # 80% of the way to target
+                    # Trail to 75% of gains (aggressive trailing)
+                    new_stop = entry_price + ((current_price - entry_price) * 0.75)
+                elif progress_to_target >= 0.5:  # 50-80% of the way
+                    # Trail to breakeven plus 50% of gains
+                    new_stop = entry_price + ((current_price - entry_price) * 0.5)
+                else:  # Just reached halfway
+                    # Trail to breakeven
+                    new_stop = max(trade['stop_price'], entry_price)
+                
+                # Only update if it's higher than current stop
+                if new_stop > trade['stop_price']:
+                    action = {
+                        'symbol': symbol,
+                        'action': 'adjust_stop',
+                        'old_stop': trade['stop_price'],
+                        'new_stop': new_stop,
+                        'reason': 'Trailing stop'
+                    }
+                    
+                    # Update stop loss
+                    trade['stop_price'] = new_stop
+                    
+                    # If using a broker, update the stop loss order
+                    if not self.is_simulated and self.broker and 'stop_order_id' in trade:
+                        try:
+                            # Cancel the old stop order
+                            self.broker.cancel_order(trade['stop_order_id'])
+                            
+                            # Place a new stop order
+                            new_stop_order = self.broker.submit_order(
+                                symbol=symbol,
+                                quantity=shares,
+                                side='SELL',
+                                order_type='STOP',
+                                time_in_force='GTC',
+                                stop_price=new_stop
+                            )
+                            
+                            if new_stop_order:
+                                trade['stop_order_id'] = new_stop_order['id']
+                        except Exception as e:
+                            logger.error(f"Error updating stop loss for {symbol}: {str(e)}")
+                    
+                    actions_taken.append(action)
+                    logger.info(f"Trailing stop adjusted for {symbol}: ${trade['stop_price']:.2f} -> ${new_stop:.2f}")
+            
+            # Check for adding to winner
+            # Only if we've reached halfway to target and have a profit cushion
+            if (current_price >= halfway_to_target and 
+                self.risk_manager.cushion_achieved and
+                'add_shares_processed' not in trade):
+                
+                # Calculate additional shares - limit to 50% of original position
+                additional_shares = min(shares // 2, self.risk_manager.calculate_position_size(
+                    current_price, trade['stop_price']))
                 
                 if additional_shares > 0:
-                    adjustments.append({
+                    action = {
                         'symbol': symbol,
                         'action': 'add_shares',
                         'current_shares': shares,
                         'additional_shares': additional_shares,
-                        'reason': 'Add to winning position'
-                    })
+                        'price': current_price,
+                        'reason': 'Add to winner'
+                    }
+                    
+                    # Execute additional shares
+                    if not self.is_simulated and self.broker:
+                        try:
+                            # Submit order for additional shares
+                            add_order = self.broker.submit_order(
+                                symbol=symbol,
+                                quantity=additional_shares,
+                                side='BUY',
+                                order_type='LIMIT',
+                                time_in_force='DAY',
+                                limit_price=current_price
+                            )
+                            
+                            if add_order:
+                                # Update trade with additional shares
+                                new_total_shares = shares + additional_shares
+                                new_avg_price = ((entry_price * shares) + 
+                                               (current_price * additional_shares)) / new_total_shares
+                                
+                                trade['executed_shares'] = new_total_shares
+                                trade['executed_price'] = new_avg_price
+                                trade['add_shares_processed'] = True
+                                
+                                # Update exit orders
+                                if 'stop_order_id' in trade:
+                                    self.broker.cancel_order(trade['stop_order_id'])
+                                if 'profit_order_id' in trade:
+                                    self.broker.cancel_order(trade['profit_order_id'])
+                                
+                                # Set new exit orders
+                                self._set_exit_orders(symbol, trade)
+                                
+                                logger.info(f"Added {additional_shares} shares to {symbol} at ${current_price:.2f}")
+                            else:
+                                logger.warning(f"Failed to add shares to {symbol}")
+                        except Exception as e:
+                            logger.error(f"Error adding shares to {symbol}: {str(e)}")
+                    else:
+                        # Simulate adding shares
+                        new_total_shares = shares + additional_shares
+                        new_avg_price = ((entry_price * shares) + 
+                                       (current_price * additional_shares)) / new_total_shares
+                        
+                        trade['executed_shares'] = new_total_shares
+                        trade['executed_price'] = new_avg_price
+                        trade['add_shares_processed'] = True
+                        
+                        logger.info(f"Simulated adding {additional_shares} shares to {symbol} at ${current_price:.2f}")
+                    
+                    actions_taken.append(action)
         
-        return adjustments
+        # Remove closed positions
+        for symbol in symbols_to_remove:
+            if symbol in self.active_trades:
+                del self.active_trades[symbol]
+        
+        return actions_taken
     
-    def should_continue_trading(self):
+    def _exit_trade(self, symbol, exit_price, exit_reason):
         """
-        Determine if trading should continue for the day based on Ross Cameron's criteria.
-        
-        Returns:
-        --------
-        tuple: (should_continue, reason)
-        """
-        # Check for daily goal achievement
-        daily_goal_amount = self.current_capital * self.daily_goal
-        if self.daily_pnl >= daily_goal_amount:
-            return True, "Daily goal achieved, trading can continue with full size"
-        
-        # Check for quarter goal achievement (profit cushion)
-        quarter_goal_amount = self.current_capital * self.quarter_daily_goal
-        if self.daily_pnl >= quarter_goal_amount:
-            return True, "Profit cushion established, can trade with full size"
-        
-        # Check for daily loss limit
-        daily_max_loss = self.current_capital * (self.daily_max_loss_pct / 100)
-        if self.daily_pnl <= -daily_max_loss:
-            return False, "Daily max loss reached, stop trading for the day"
-        
-        # Check for consecutive losses
-        if self.consecutive_losses >= 3:
-            return False, "Three consecutive losses, stop trading for the day"
-        
-        # Default: continue trading with reduced size
-        return True, "Continue trading with reduced position size"
-    
-    def reset_daily_metrics(self):
-        """
-        Reset daily trading metrics at the start of a new trading day.
-        """
-        self.daily_pnl = 0.0
-        self.cushion_achieved = False
-        self.reduced_position_size = True
-        self.consecutive_losses = 0
-        
-        logger.info("Daily metrics reset for new trading day")
-    
-    def get_performance_summary(self):
-        """
-        Get a summary of trading performance metrics.
-        
-        Returns:
-        --------
-        dict: Performance metrics
-        """
-        return {
-            'initial_capital': self.initial_capital,
-            'current_capital': self.current_capital,
-            'total_pnl': self.total_pnl,
-            'total_return_pct': (self.total_pnl / self.initial_capital) * 100,
-            'win_rate': self.win_rate,
-            'profit_loss_ratio': self.avg_win / abs(self.avg_loss) if self.avg_loss != 0 else 0,
-            'max_drawdown': self.max_drawdown,
-            'trade_count': len(self.trade_history),
-            'consecutive_losses': self.consecutive_losses
-        }
-    
-    def _update_performance_metrics(self, trade_pnl, is_win):
-        """
-        Update performance metrics after a trade.
+        Exit a trade and update tracking information.
         
         Parameters:
         -----------
-        trade_pnl: float
-            Profit/loss from the trade
-        is_win: bool
-            Whether the trade was a win
+        symbol: str
+            Stock symbol
+        exit_price: float
+            Exit price
+        exit_reason: str
+            Reason for exiting the trade
+            
+        Returns:
+        --------
+        dict: Closed trade information
         """
-        # Count total wins and losses
-        wins = sum(1 for trade in self.trade_history if trade.get('realized_pnl', 0) > 0)
-        losses = sum(1 for trade in self.trade_history if trade.get('realized_pnl', 0) <= 0)
+        if symbol not in self.active_trades:
+            logger.warning(f"Position not found: {symbol}")
+            return None
         
-        # Calculate win rate
-        total_trades = wins + losses + 1  # Include current trade
-        self.win_rate = wins / total_trades if is_win else (wins + 1) / total_trades
+        trade = self.active_trades[symbol]
         
-        # Calculate average win and loss
-        win_amounts = [trade.get('realized_pnl', 0) for trade in self.trade_history 
-                     if trade.get('realized_pnl', 0) > 0]
-        loss_amounts = [trade.get('realized_pnl', 0) for trade in self.trade_history 
-                      if trade.get('realized_pnl', 0) <= 0]
-        
-        if is_win:
-            win_amounts.append(trade_pnl)
+        # If using a broker, cancel existing exit orders
+        if not self.is_simulated and self.broker:
+            try:
+                # Cancel stop loss and take profit orders
+                if 'stop_order_id' in trade:
+                    self.broker.cancel_order(trade['stop_order_id'])
+                
+                if 'profit_order_id' in trade:
+                    self.broker.cancel_order(trade['profit_order_id'])
+                
+                # Execute sell order
+                sell_order = self.broker.submit_order(
+                    symbol=symbol,
+                    quantity=trade['executed_shares'],
+                    side='SELL',
+                    order_type='MARKET',  # Use market order to ensure execution
+                    time_in_force='DAY'
+                )
+                
+                if sell_order:
+                    executed_exit_price = sell_order.get('avg_fill_price', exit_price)
+                    commission = sell_order.get('commission', 0.0)
+                    
+                    logger.info(f"Sold {trade['executed_shares']} shares of {symbol} at ${executed_exit_price:.2f}")
+                else:
+                    executed_exit_price = exit_price
+                    commission = 0.0
+                    
+                    logger.warning(f"Failed to execute sell order for {symbol}, using estimated exit price")
+                
+            except Exception as e:
+                logger.error(f"Error selling {symbol}: {str(e)}")
+                executed_exit_price = exit_price
+                commission = 0.0
         else:
-            loss_amounts.append(trade_pnl)
+            # Simulate sell execution
+            executed_exit_price = exit_price
+            commission = 0.0
+            
+            logger.info(f"Simulated selling {trade['executed_shares']} shares of {symbol} at ${executed_exit_price:.2f}")
         
-        self.avg_win = sum(win_amounts) / len(win_amounts) if win_amounts else 0
-        self.avg_loss = sum(loss_amounts) / len(loss_amounts) if loss_amounts else 0
+        # Calculate realized P&L
+        entry_price = trade['executed_price']
+        shares = trade['executed_shares']
+        total_commission = trade.get('commission', 0.0) + commission
+        realized_pnl = (executed_exit_price - entry_price) * shares - total_commission
+        
+        # Update trade details
+        trade['exit_price'] = executed_exit_price
+        trade['exit_time'] = datetime.now()
+        trade['exit_reason'] = exit_reason
+        trade['realized_pnl'] = realized_pnl
+        trade['commission'] = total_commission
+        trade['status'] = 'closed'
+        
+        # Calculate duration
+        duration = trade['exit_time'] - trade['execution_time']
+        trade['duration_seconds'] = duration.total_seconds()
+        
+        # Update risk manager
+        self.risk_manager.close_position(symbol, executed_exit_price, exit_reason)
+        
+        # Update daily stats
+        if realized_pnl > 0:
+            self.daily_stats['winning_trades'] += 1
+            self.daily_stats['total_profit'] += realized_pnl
+        else:
+            self.daily_stats['losing_trades'] += 1
+            self.daily_stats['total_loss'] += realized_pnl
+            
+        self.daily_stats['gross_pnl'] += realized_pnl
+        
+        # Add to completed trades
+        self.completed_trades.append(trade)
+        
+        return trade
+    
+    def _close_all_positions(self):
+        """
+        Close all open positions.
+        """
+        logger.info("Closing all open positions")
+        
+        symbols = list(self.active_trades.keys())
+        
+        for symbol in symbols:
+            # Get current price
+            current_price = self.market_data.get_current_price(symbol)
+            
+            if current_price is None:
+                logger.warning(f"Could not get current price for {symbol}, using last known price")
+                current_price = self.active_trades[symbol].get('current_price', 
+                                                             self.active_trades[symbol]['executed_price'])
+            
+            # Exit the trade
+            self._exit_trade(symbol, current_price, 'session_end')
+            
+            logger.info(f"Closed position for {symbol} at ${current_price:.2f}")
+    
+    def _log_session_summary(self):
+        """
+        Log a summary of the trading session.
+        """
+        total_trades = self.daily_stats['trades_taken']
+        winning_trades = self.daily_stats['winning_trades']
+        losing_trades = self.daily_stats['losing_trades']
+        win_rate = winning_trades / total_trades if total_trades > 0 else 0
+        
+        gross_pnl = self.daily_stats['gross_pnl']
+        
+        logger.info("=== Trading Session Summary ===")
+        logger.info(f"Total Trades: {total_trades}")
+        logger.info(f"Winning Trades: {winning_trades} ({win_rate:.2%})")
+        logger.info(f"Losing Trades: {losing_trades} ({1-win_rate:.2%})")
+        logger.info(f"Gross P&L: ${gross_pnl:.2f}")
+        logger.info("==============================")
+    
+    def get_trading_status(self):
+        """
+        Get the current trading status.
+        
+        Returns:
+        --------
+        dict: Trading status information
+        """
+        return {
+            'is_trading_enabled': self.is_trading_enabled,
+            'is_simulated': self.is_simulated,
+            'market_open': self.condition_tracker.market_open if self.condition_tracker else False,
+            'pre_market': self.condition_tracker.pre_market if self.condition_tracker else False,
+            'strong_market': self.condition_tracker.strong_market if self.condition_tracker else False,
+            'active_trades': len(self.active_trades),
+            'completed_trades': len(self.completed_trades),
+            'daily_pnl': self.daily_stats['gross_pnl'],
+            'cushion_achieved': self.risk_manager.cushion_achieved if self.risk_manager else False,
+            'reduced_position_size': self.risk_manager.reduced_position_size if self.risk_manager else True
+        }

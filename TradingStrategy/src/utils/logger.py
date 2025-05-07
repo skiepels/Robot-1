@@ -1,7 +1,7 @@
 """
 Logger Module
 
-This module implements a logging system for the day trading strategy
+This module implements a logging system for the trading strategy
 to track strategy execution, trades, and performance.
 """
 
@@ -78,150 +78,6 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(log_record)
 
 
-# Trade logger for detailed trade information
-class TradeLogger:
-    """
-    Specialized logger for trade execution and management.
-    """
-    def __init__(self, log_dir='logs', trade_log_file='trades.json'):
-        self.log_dir = log_dir
-        self.trade_log_file = os.path.join(log_dir, trade_log_file)
-        
-        # Create log directory if it doesn't exist
-        os.makedirs(log_dir, exist_ok=True)
-        
-        # Initialize empty trade log if file doesn't exist
-        if not os.path.exists(self.trade_log_file):
-            with open(self.trade_log_file, 'w') as f:
-                json.dump([], f)
-    
-    def log_trade(self, trade_data):
-        """
-        Log trade data to JSON file.
-        """
-        # Read existing trades
-        try:
-            with open(self.trade_log_file, 'r') as f:
-                trades = json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
-            trades = []
-        
-        # Add timestamp if not present
-        if 'timestamp' not in trade_data:
-            trade_data['timestamp'] = datetime.now().isoformat()
-        
-        # Append new trade
-        trades.append(trade_data)
-        
-        # Write back to file
-        with open(self.trade_log_file, 'w') as f:
-            json.dump(trades, f, indent=2)
-    
-    def get_trades(self, limit=None, start_date=None, end_date=None, symbol=None):
-        """
-        Retrieve trades from the log file with optional filtering.
-        
-        Parameters:
-        -----------
-        limit: int, optional
-            Maximum number of trades to return
-        start_date: str, optional
-            ISO format date string for filtering trades after this date
-        end_date: str, optional
-            ISO format date string for filtering trades before this date
-        symbol: str, optional
-            Filter trades by symbol
-            
-        Returns:
-        --------
-        list: Filtered trade records
-        """
-        try:
-            with open(self.trade_log_file, 'r') as f:
-                trades = json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
-            return []
-        
-        # Apply filters
-        if start_date:
-            start_datetime = datetime.fromisoformat(start_date)
-            trades = [t for t in trades if datetime.fromisoformat(t['timestamp']) >= start_datetime]
-        
-        if end_date:
-            end_datetime = datetime.fromisoformat(end_date)
-            trades = [t for t in trades if datetime.fromisoformat(t['timestamp']) <= end_datetime]
-        
-        if symbol:
-            trades = [t for t in trades if t.get('symbol') == symbol]
-        
-        # Apply limit
-        if limit and limit > 0:
-            trades = trades[-limit:]
-        
-        return trades
-
-
-# Performance logger for strategy performance metrics
-class PerformanceLogger:
-    """
-    Specialized logger for tracking trading performance metrics.
-    """
-    def __init__(self, log_dir='logs', performance_log_file='performance.json'):
-        self.log_dir = log_dir
-        self.performance_log_file = os.path.join(log_dir, performance_log_file)
-        
-        # Create log directory if it doesn't exist
-        os.makedirs(log_dir, exist_ok=True)
-    
-    def log_daily_performance(self, performance_data):
-        """
-        Log daily performance metrics.
-        """
-        # Read existing performance data
-        try:
-            with open(self.performance_log_file, 'r') as f:
-                performance_history = json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
-            performance_history = {}
-        
-        # Add timestamp if not present
-        if 'date' not in performance_data:
-            performance_data['date'] = datetime.now().strftime('%Y-%m-%d')
-        
-        # Add or update performance for the day
-        date_key = performance_data['date']
-        performance_history[date_key] = performance_data
-        
-        # Write back to file
-        with open(self.performance_log_file, 'w') as f:
-            json.dump(performance_history, f, indent=2)
-    
-    def get_performance_history(self, days=30):
-        """
-        Retrieve performance history.
-        
-        Parameters:
-        -----------
-        days: int, optional
-            Number of days to retrieve
-            
-        Returns:
-        --------
-        dict: Performance history
-        """
-        try:
-            with open(self.performance_log_file, 'r') as f:
-                performance_history = json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
-            return {}
-        
-        # Sort by date and limit to requested number of days
-        sorted_dates = sorted(performance_history.keys(), reverse=True)
-        recent_dates = sorted_dates[:days]
-        
-        return {date: performance_history[date] for date in recent_dates}
-
-
 def setup_logger(name='trading_strategy', log_dir='logs', 
                 console_level=logging.INFO, file_level=logging.DEBUG,
                 max_file_size=10*1024*1024, backup_count=5):
@@ -283,14 +139,3 @@ def setup_logger(name='trading_strategy', log_dir='logs',
     logger.addHandler(file_handler)
     
     return logger
-
-
-# Create trade and performance loggers
-def get_trade_logger(log_dir='logs'):
-    """Get the trade logger instance."""
-    return TradeLogger(log_dir=log_dir)
-
-
-def get_performance_logger(log_dir='logs'):
-    """Get the performance logger instance."""
-    return PerformanceLogger(log_dir=log_dir)

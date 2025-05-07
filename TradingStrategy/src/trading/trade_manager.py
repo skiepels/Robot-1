@@ -678,7 +678,7 @@ class TradeManager:
 # In src/trading/trade_manager.py
 
 # Add this to the imports section
-from ib_broker import IBBroker
+from src.trading.ib_broker import IBBroker
 
 # Then modify the execute_trade method:
 

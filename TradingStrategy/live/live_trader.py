@@ -1,8 +1,8 @@
 """
-Live Trading with Interactive Brokers
+Live Trading Script
 
-This script runs the Ross Cameron day trading strategy with live
-data from Interactive Brokers for trading GPUS.
+This script runs the trading strategy with live data from Interactive Brokers.
+It implements the 5 condition momentum trading strategy.
 """
 
 import os
@@ -11,42 +11,52 @@ import argparse
 import logging
 import time
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
 # Add the project root directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.utils.logger import setup_logger
+from src.data.ib_connector import IBConnector
+from src.data.market_data import MarketDataProvider
+from src.data.news_data import NewsDataProvider
 from src.scanning.scanner import StockScanner
 from src.scanning.condition_tracker import ConditionTracker
 from src.trading.risk_manager import RiskManager
 from src.trading.trade_manager import TradeManager
-from real_market_data import RealMarketDataProvider
-from simple_news_provider import SimpleNewsProvider
-from ib_broker import IBBroker
+from src.trading.ib_broker import IBBroker
+
+# Load environment variables
+load_dotenv()
+
 
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Run live trading with Interactive Brokers')
     
-    parser.add_argument('--api-key', type=str, required=True,
-                      help='Alpha Vantage API key (for market data)')
-    
-    parser.add_argument('--host', type=str, default='127.0.0.1',
-                      help='TWS/IB Gateway host')
-    
-    parser.add_argument('--port', type=int, default=7497,
-                      help='TWS/IB Gateway port (7497 for paper, 7496 for live)')
-    
-    parser.add_argument('--client-id', type=int, default=1,
-                      help='Client ID for IB API connection')
-    
-    parser.add_argument('--capital', type=float, default=10000.0,
-                      help='Initial capital')
+    parser.add_argument('--symbols', type=str, nargs='+', default=['GPUS'],
+                      help='Stock symbols to trade (default: GPUS)')
     
     parser.add_argument('--paper', action='store_true',
-                      help='Use paper trading (safe default)')
+                      help='Use paper trading (default)')
+    
+    parser.add_argument('--live', action='store_true',
+                      help='Use live trading (overrides --paper)')
+    
+    parser.add_argument('--capital', type=float, default=None,
+                      help='Initial capital (default: from .env)')
+    
+    parser.add_argument('--host', type=str, default=None,
+                      help='TWS/IB Gateway host (default: from .env)')
+    
+    parser.add_argument('--port', type=int, default=None,
+                      help='TWS/IB Gateway port (default: from .env)')
+    
+    parser.add_argument('--client-id', type=int, default=None,
+                      help='Client ID for IB API connection (default: from .env)')
     
     return parser.parse_args()
+
 
 def run_live_trading(args):
     """
@@ -62,8 +72,9 @@ def run_live_trading(args):
     
     logger.info("Starting live trading with Interactive Brokers")
     
-    # Determine if using paper trading
-    is_paper = args.paper or args.port == 7497
+    # Determine trading mode
+    is_paper = not args.live
+    port = args.port or (int(os.getenv('IB_PORT', 7497)) if is_paper else 7496)
     trading_mode = "PAPER" if is_paper else "LIVE"
     
     logger.info(f"Trading mode: {trading_mode}")
@@ -76,21 +87,25 @@ def run_live_trading(args):
             return
     
     try:
-        # Initialize Interactive Brokers connection
-        broker = IBBroker(
-            host=args.host,
-            port=args.port,
-            client_id=args.client_id
+        # Initialize IB connector
+        ib_connector = IBConnector(
+            host=args.host or os.getenv('IB_HOST'),
+            port=port,
+            client_id=args.client_id or int(os.getenv('IB_CLIENT_ID', 1))
         )
         
-        # Connect to IB
-        if not broker.connect():
+        if not ib_connector.connect():
             logger.error("Failed to connect to Interactive Brokers. Exiting.")
             return
         
-        # Initialize other components
-        market_data = RealMarketDataProvider(api_key=args.api_key)
-        news_data = SimpleNewsProvider()
+        # Initialize IB broker
+        ib_broker = IBBroker(connector=ib_connector)
+        
+        # Initialize market data provider
+        market_data = MarketDataProvider(ib_connector=ib_connector)
+        
+        # Initialize news data provider
+        news_data = NewsDataProvider()
         
         # Initialize scanner
         scanner = StockScanner(market_data, news_data)
@@ -99,16 +114,19 @@ def run_live_trading(args):
         condition_tracker = ConditionTracker(market_data, news_data)
         
         # Get actual account balance
-        account_balance = broker.get_account_balance()
+        account_balance = ib_broker.get_account_balance()
         logger.info(f"Account balance: ${account_balance:.2f}")
         
-        # Initialize risk manager with actual balance
+        # Use provided capital or account balance
+        initial_capital = args.capital or account_balance or float(os.getenv('INITIAL_CAPITAL', 10000.0))
+        
+        # Initialize risk manager
         risk_manager = RiskManager(
-            initial_capital=account_balance,
-            max_risk_per_trade_pct=1.0,
-            daily_max_loss_pct=3.0,
-            profit_loss_ratio=2.0,
-            max_open_positions=3
+            initial_capital=initial_capital,
+            max_risk_per_trade_pct=float(os.getenv('MAX_RISK_PER_TRADE_PCT', 1.0)),
+            daily_max_loss_pct=float(os.getenv('DAILY_MAX_LOSS_PCT', 3.0)),
+            profit_loss_ratio=float(os.getenv('PROFIT_LOSS_RATIO', 2.0)),
+            max_open_positions=int(os.getenv('MAX_OPEN_POSITIONS', 3))
         )
         
         # Initialize trade manager
@@ -117,15 +135,15 @@ def run_live_trading(args):
             scanner=scanner,
             risk_manager=risk_manager,
             condition_tracker=condition_tracker,
-            broker_api=broker
+            broker_api=ib_broker
         )
         
         # Set trading parameters
-        trade_manager.min_price = 1.0
-        trade_manager.max_price = 100.0
-        trade_manager.min_gap_pct = 2.0
-        trade_manager.min_rel_volume = 1.0
-        trade_manager.max_float = 100_000_000
+        trade_manager.min_price = 2.0
+        trade_manager.max_price = 20.0
+        trade_manager.min_gap_pct = 10.0
+        trade_manager.min_rel_volume = 5.0
+        trade_manager.max_float = 20_000_000
         
         # Start trading session
         trade_manager.start_trading_session()
@@ -133,6 +151,7 @@ def run_live_trading(args):
         trade_manager.is_simulated = False
         
         logger.info("Trading session started")
+        logger.info(f"Watching symbols: {', '.join(args.symbols)}")
         
         # Main trading loop
         try:
@@ -153,14 +172,18 @@ def run_live_trading(args):
                     time.sleep(60)
                     continue
                 
-                # Scan for opportunities (focusing on GPUS)
-                logger.info("Scanning for trading opportunities in GPUS...")
+                # Scan for opportunities (focusing on provided symbols)
+                logger.info(f"Scanning for trading opportunities in {', '.join(args.symbols)}...")
                 
-                # Get GPUS data
-                stocks = market_data.get_tradable_stocks()  # Should contain GPUS
+                # Get data for symbols
+                stocks = []
+                for symbol in args.symbols:
+                    stock_data = market_data.get_stock_data(symbol)
+                    if stock_data:
+                        stocks.append(stock_data)
                 
                 if not stocks:
-                    logger.warning("Failed to get data for GPUS. Retrying in 60 seconds.")
+                    logger.warning(f"Failed to get data for {', '.join(args.symbols)}. Retrying in 60 seconds.")
                     time.sleep(60)
                     continue
                 
@@ -210,7 +233,7 @@ def run_live_trading(args):
                 
                 # Wait before next scan
                 logger.info("Waiting for next scan cycle...")
-                time.sleep(300)  # 5 minutes between scans
+                time.sleep(60)  # 1 minute between scans
                 
         except KeyboardInterrupt:
             logger.info("Trading interrupted by user")
@@ -219,12 +242,13 @@ def run_live_trading(args):
         trade_manager.stop_trading_session()
         
         # Disconnect from IB
-        broker.disconnect()
+        ib_connector.disconnect()
         
         logger.info("Trading session ended")
         
     except Exception as e:
         logger.error(f"Error in live trading: {e}", exc_info=True)
+
 
 if __name__ == '__main__':
     args = parse_arguments()
