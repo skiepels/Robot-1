@@ -17,6 +17,9 @@ import logging
 import time
 from dotenv import load_dotenv
 
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+from backtest.backtest_engine import main
+
 from src.data.ib_connector import IBConnector
 from src.conditions.condition1_price import PriceCondition
 from src.conditions.condition2_percent_up import PercentUpCondition
@@ -768,3 +771,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
+    

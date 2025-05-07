@@ -344,6 +344,8 @@ class CandlestickPatterns:
             logger.error(f"Error detecting new high breakout: {e}")
             return False
     
+    # Compatibility methods to match method calls in trade_manager.py
+
     def detect_entry_signal(self, df):
         """
         Detect all potential entry signals in the price data.
@@ -486,3 +488,50 @@ class CandlestickPatterns:
         target_price = entry_price + (risk * profit_loss_ratio)
         
         return target_price
+    
+    # Existing methods
+
+    def get_optimal_entry(self, price_history):
+        """
+        Return the optimal entry price for the current pattern.
+        Maps to get_optimal_entry_price for compatibility.
+        """
+        # First determine the pattern
+        signals = self.detect_entry_signal(price_history)
+        
+        if 'bull_flag' in signals:
+            pattern = 'bull_flag'
+        elif 'new_high_breakout' in signals:
+            pattern = 'new_high_breakout'
+        elif 'micro_pullback' in signals:
+            pattern = 'micro_pullback'
+        else:
+            return price_history.iloc[-1]['close'] if not price_history.empty else None
+        
+        return self.get_optimal_entry_price(price_history, pattern)
+    
+    def get_optimal_stop_loss(self, price_history):
+        """
+        Return the optimal stop loss price for the current pattern.
+        Maps to get_optimal_stop_price for compatibility.
+        """
+        # First determine the pattern
+        signals = self.detect_entry_signal(price_history)
+        
+        if 'bull_flag' in signals:
+            pattern = 'bull_flag'
+        elif 'new_high_breakout' in signals:
+            pattern = 'new_high_breakout'
+        elif 'micro_pullback' in signals:
+            pattern = 'micro_pullback'
+        else:
+            return price_history.iloc[-1]['low'] if not price_history.empty else None
+        
+        return self.get_optimal_stop_price(price_history, pattern)
+    
+    def get_optimal_target(self, entry, stop, profit_loss_ratio=2.0):
+        """
+        Return the optimal profit target price.
+        Maps to get_optimal_target_price for compatibility.
+        """
+        return self.get_optimal_target_price(entry, stop, profit_loss_ratio)

@@ -10,7 +10,7 @@ import numpy as np
 import logging
 from datetime import datetime, timedelta
 import time
-from src.entry.candlestick_patterns import CandlestickPatterns
+from src.entry.candlestick import CandlestickPatterns
 
 logger = logging.getLogger(__name__)
 
