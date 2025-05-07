@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import logging
+import random
 
 from src.data.market_data import MarketDataProvider
 from src.data.news_data import NewsDataProvider
@@ -53,6 +54,9 @@ class MockMarketDataProvider(MarketDataProvider):
         
         # Stock universe from the data generator
         self.stock_universe = self.data_generator.stock_universe
+        
+        # Track current patterns for each stock
+        self.stock_patterns = {}
     
     def set_current_date(self, date):
         """Set the current simulation date."""
@@ -257,15 +261,14 @@ class MockMarketDataProvider(MarketDataProvider):
     def _enhance_stock_for_trading(self, stock):
         """
         Enhance a stock with additional data for trading.
-        This method adds data that makes the stock more likely to meet trading criteria.
+        This method adds data that makes the stock more likely to meet trading criteria
+        AND generates realistic price patterns for entry signals.
         
         Parameters:
         -----------
         stock: Stock
             Stock object to enhance
         """
-        import random
-        
         # Enhance gap percentage (10-20% to ensure it passes the criteria)
         stock.gap_percent = random.uniform(10.0, 20.0)
         
@@ -290,14 +293,70 @@ class MockMarketDataProvider(MarketDataProvider):
         
         if price_data and date_str in price_data['intraday']:
             intraday_data = price_data['intraday'][date_str]
-            stock.set_price_history(intraday_data)
             
-            # CRITICAL: Force pattern detection flags
-            # This is the key to getting trades executed
-            stock.has_bull_flag = True
-            stock.has_micro_pullback = False
-            stock.has_new_high_breakout = False
-            stock.current_pattern = 'bull_flag'  # Set this explicitly
+            # Check if we have a pattern assigned for this stock
+            if stock.symbol not in self.stock_patterns:
+                # Assign a pattern randomly
+                pattern_choice = random.choice(['bull_flag', 'micro_pullback', 'new_high_breakout'])
+                self.stock_patterns[stock.symbol] = pattern_choice
+            
+            # Get the assigned pattern
+            pattern_type = self.stock_patterns[stock.symbol]
+            
+            # Check the simulation time to determine which phase to create
+            current_hour = self.current_datetime.hour
+            current_minute = self.current_datetime.minute
+            
+            # Morning session - set up initial patterns (9:30-10:30)
+            if current_hour < 10 or (current_hour == 10 and current_minute <= 30):
+                # Set up the initial pattern
+                if pattern_type == 'bull_flag':
+                    self._create_bull_flag_pattern(intraday_data)
+                    stock.has_bull_flag = True
+                    stock.current_pattern = 'bull_flag'
+                elif pattern_type == 'micro_pullback':
+                    self._create_micro_pullback_pattern(intraday_data)
+                    stock.has_micro_pullback = True
+                    stock.current_pattern = 'micro_pullback'
+                else:
+                    self._create_new_high_pattern(intraday_data)
+                    stock.has_new_high_breakout = True
+                    stock.current_pattern = 'new_high_breakout'
+            
+            # Mid-day session - create breakout opportunities (10:30-13:00)
+            elif current_hour >= 10 and current_hour < 13:
+                # Create breakout opportunities for existing patterns
+                self._create_breakout_opportunity(intraday_data, pattern_type)
+                
+                if pattern_type == 'bull_flag':
+                    stock.has_bull_flag = True
+                    stock.current_pattern = 'bull_flag'
+                elif pattern_type == 'micro_pullback':
+                    stock.has_micro_pullback = True
+                    stock.current_pattern = 'micro_pullback'
+                else:
+                    stock.has_new_high_breakout = True
+                    stock.current_pattern = 'new_high_breakout'
+            
+            # Afternoon session - create follow-through or failure patterns (13:00-16:00)
+            else:
+                # Either continue the trend or reverse it
+                if random.random() > 0.3:  # 70% chance of continuation
+                    self._create_trend_continuation(intraday_data, pattern_type)
+                else:
+                    self._create_trend_reversal(intraday_data, pattern_type)
+                
+                if pattern_type == 'bull_flag':
+                    stock.has_bull_flag = True
+                    stock.current_pattern = 'bull_flag'
+                elif pattern_type == 'micro_pullback':
+                    stock.has_micro_pullback = True
+                    stock.current_pattern = 'micro_pullback'
+                else:
+                    stock.has_new_high_breakout = True
+                    stock.current_pattern = 'new_high_breakout'
+            
+            stock.set_price_history(intraday_data)
             
             # Set optimal entry/stop/target prices to ensure trade validation passes
             entry_price = stock.current_price
@@ -308,6 +367,232 @@ class MockMarketDataProvider(MarketDataProvider):
             stock.get_optimal_entry = lambda: entry_price
             stock.get_optimal_stop_loss = lambda: stop_price
             stock.get_optimal_target = lambda: target_price
+
+    def _create_bull_flag_pattern(self, df):
+        """Create a bull flag pattern in the price data"""
+        # Only proceed if we have enough data
+        if len(df) < 10:
+            return
+            
+        # Get the last 10 candles
+        last_idx = len(df) - 1
+        
+        # Strong move up (pole)
+        for i in range(3):
+            idx = last_idx - 9 + i
+            if idx >= 0 and idx < len(df):
+                df.loc[df.index[idx], 'open'] = df.loc[df.index[idx], 'open'] * 0.98
+                df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.02
+                df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+                df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+        
+        # Consolidation (flag) with lower highs
+        high_point = df.loc[df.index[last_idx - 7], 'high']
+        for i in range(3, 8):
+            idx = last_idx - 9 + i
+            if idx >= 0 and idx < len(df):
+                decline_factor = 1.0 - (0.005 * (i - 3))
+                df.loc[df.index[idx], 'high'] = high_point * decline_factor
+                df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'high'] * 0.99
+                df.loc[df.index[idx], 'open'] = df.loc[df.index[idx], 'close'] * 1.01
+                df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+        
+        # Breakout candle
+        idx = last_idx - 1
+        if idx >= 0 and idx < len(df):
+            df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+            df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.03
+            df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+            df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+            # Increase volume on breakout
+            if 'volume' in df.columns:
+                df.loc[df.index[idx], 'volume'] = df.loc[df.index[idx], 'volume'] * 1.5
+        
+        # Last candle (current)
+        idx = last_idx
+        if idx >= 0 and idx < len(df):
+            df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+            df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.02
+            df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+            df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+
+    def _create_micro_pullback_pattern(self, df):
+        """Create a micro pullback pattern in the price data"""
+        # Only proceed if we have enough data
+        if len(df) < 10:
+            return
+            
+        # Get the last index
+        last_idx = len(df) - 1
+        
+        # Strong move up
+        for i in range(5):
+            idx = last_idx - 9 + i
+            if idx >= 0 and idx < len(df):
+                df.loc[df.index[idx], 'open'] = df.loc[df.index[idx], 'open'] * (1.0 + 0.005 * i)
+                df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.01
+                df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+                df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+        
+        # Micro pullback candle (red with long lower wick)
+        idx = last_idx - 4
+        if idx >= 0 and idx < len(df):
+            df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+            df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 0.99
+            df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'open'] * 1.005
+            df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'close'] * 0.96
+        
+        # Consolidation
+        for i in range(5, 8):
+            idx = last_idx - 9 + i
+            if idx >= 0 and idx < len(df):
+                df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close'] * 0.995
+                df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.005
+                df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.005
+                df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.995
+        
+        # Breakout candle
+        idx = last_idx - 1
+        if idx >= 0 and idx < len(df):
+            df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+            df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.03
+            df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+            df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+            # Increase volume on breakout
+            if 'volume' in df.columns:
+                df.loc[df.index[idx], 'volume'] = df.loc[df.index[idx], 'volume'] * 1.5
+        
+        # Last candle (current)
+        idx = last_idx
+        if idx >= 0 and idx < len(df):
+            df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+            df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.01
+            df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+            df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+
+    def _create_new_high_pattern(self, df):
+        """Create a 'first candle to make a new high' pattern"""
+        # Only proceed if we have enough data
+        if len(df) < 10:
+            return
+            
+        # Get the last index
+        last_idx = len(df) - 1
+        
+        # Initial move up to establish a high
+        for i in range(3):
+            idx = last_idx - 9 + i
+            if idx >= 0 and idx < len(df):
+                df.loc[df.index[idx], 'open'] = df.loc[df.index[idx], 'open'] * (1.0 + 0.01 * i)
+                df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.01
+                df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+                df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+        
+        # Set the high point
+        high_point = df.loc[df.index[last_idx - 7], 'high']
+        
+        # Pullback
+        for i in range(3, 6):
+            idx = last_idx - 9 + i
+            if idx >= 0 and idx < len(df):
+                df.loc[df.index[idx], 'open'] = df.loc[df.index[idx], 'open'] * (1.0 - 0.005 * (i - 2))
+                df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 0.99
+                df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'open'] * 1.01
+                df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'close'] * 0.99
+                df.loc[df.index[idx], 'high'] = min(df.loc[df.index[idx], 'high'], high_point * 0.99)
+        
+        # Coiling candles
+        for i in range(6, 8):
+            idx = last_idx - 9 + i
+            if idx >= 0 and idx < len(df):
+                df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+                df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.005
+                df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+                df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+                df.loc[df.index[idx], 'high'] = min(df.loc[df.index[idx], 'high'], high_point * 0.99)
+        
+        # Breakout candle - first candle to make a new high
+        idx = last_idx - 1
+        if idx >= 0 and idx < len(df):
+            df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+            df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.03
+            df.loc[df.index[idx], 'high'] = high_point * 1.01  # Break above the previous high
+            df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+            # Increase volume on breakout
+            if 'volume' in df.columns:
+                df.loc[df.index[idx], 'volume'] = df.loc[df.index[idx], 'volume'] * 2.0
+        
+        # Last candle (current)
+        idx = last_idx
+        if idx >= 0 and idx < len(df):
+            df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+            df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.02
+            df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+            df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+
+    def _create_breakout_opportunity(self, df, pattern_type):
+        """Create a breakout opportunity based on the pattern type"""
+        # Create a breakout candle at the current position
+        idx = len(df) - 1
+        if idx >= 0:
+            if pattern_type == 'bull_flag':
+                # Find the flag high (resistance)
+                if idx >= 5:
+                    flag_high = df['high'].iloc[idx-5:idx].max()
+                    
+                    df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+                    df.loc[df.index[idx], 'close'] = flag_high * 1.02
+                    df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+                    df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+            elif pattern_type == 'micro_pullback':
+                if idx >= 1:
+                    pullback_high = df['high'].iloc[idx-1]
+                    
+                    df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close'] * 0.99
+                    df.loc[df.index[idx], 'close'] = pullback_high * 1.02
+                    df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+                    df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.98
+            elif pattern_type == 'new_high_breakout':
+                # Get the previous high
+                if idx >= 5:
+                    high_point = df['high'].iloc[:idx].max()
+                    
+                    df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+                    df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.03
+                    df.loc[df.index[idx], 'high'] = high_point * 1.02  # Clear breakout
+                    df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+            
+            # Increase volume on breakout
+            if 'volume' in df.columns:
+                df.loc[df.index[idx], 'volume'] = df.loc[df.index[idx], 'volume'] * 2.0
+
+    def _create_trend_continuation(self, df, pattern_type):
+        """Create a trend continuation pattern"""
+        # Add a strong green candle
+        idx = len(df) - 1
+        if idx >= 0:
+            df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+            df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 1.03
+            df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'close'] * 1.01
+            df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'open'] * 0.99
+            
+            # Increase volume on continuation
+            if 'volume' in df.columns:
+                df.loc[df.index[idx], 'volume'] = df.loc[df.index[idx], 'volume'] * 1.2
+
+    def _create_trend_reversal(self, df, pattern_type):
+        """Create a trend reversal pattern"""
+        # Add a strong red candle
+        idx = len(df) - 1
+        if idx >= 0:
+            df.loc[df.index[idx], 'open'] = df.loc[df.index[idx-1], 'close']
+            df.loc[df.index[idx], 'close'] = df.loc[df.index[idx], 'open'] * 0.97
+            df.loc[df.index[idx], 'high'] = df.loc[df.index[idx], 'open'] * 1.01
+            df.loc[df.index[idx], 'low'] = df.loc[df.index[idx], 'close'] * 0.99
+            
+            # Increase volume on reversal
+            if 'volume' in df.columns:
+                df.loc[df.index[idx], 'volume'] = df.loc[df.index[idx], 'volume'] * 1.5
 
 
 class MockNewsDataProvider(NewsDataProvider):
@@ -390,6 +675,30 @@ class MockNewsDataProvider(NewsDataProvider):
             news_item.score = item['score']
             news_items.append(news_item)
         
+        # If no news exists, create a news catalyst based on the pattern
+        if not news_items and symbol in MockMarketDataProvider._data_generator.stock_universe:
+            # Create a realistic news catalyst that matches the pattern
+            pattern_type = ''
+            if symbol in MockMarketDataProvider._data_generator.stock_universe:
+                market_data_provider = MockMarketDataProvider(self.start_date, self.end_date)
+                pattern_type = market_data_provider.stock_patterns.get(symbol, 'bull_flag')
+            
+            headline = self._generate_catalyst_headline(symbol, pattern_type)
+            source = random.choice(["Bloomberg", "Reuters", "CNBC", "Yahoo Finance", "MarketWatch"])
+            url = f"https://example.com/news/{symbol.lower()}/{self.current_date.strftime('%Y%m%d')}/1"
+            
+            # Create a news time that's before market open
+            news_date = self.current_date.replace(hour=8, minute=random.randint(0, 30))
+            
+            news_item = NewsItem(
+                headline=headline,
+                source=source,
+                url=url,
+                date=news_date
+            )
+            news_item.score = random.randint(7, 10)  # High impact news
+            news_items.append(news_item)
+        
         return news_items
     
     def get_market_news(self, days=1, max_items=20):
@@ -437,3 +746,37 @@ class MockNewsDataProvider(NewsDataProvider):
             news_items.append(news_item)
         
         return news_items
+    
+    def _generate_catalyst_headline(self, symbol, pattern_type):
+        """Generate a realistic news headline that would cause the given pattern"""
+        # Different catalysts based on pattern type
+        bull_flag_catalysts = [
+            f"{symbol} Reports Better-Than-Expected Quarterly Earnings",
+            f"{symbol} Receives FDA Approval for New Drug",
+            f"{symbol} Announces Major Contract Win",
+            f"{symbol} Secures Strategic Partnership with Industry Leader",
+            f"{symbol} Raises Full-Year Guidance"
+        ]
+        
+        micro_pullback_catalysts = [
+            f"{symbol} Reports Strong Sales Growth in Key Markets",
+            f"{symbol} Expands Product Line with New Offerings",
+            f"{symbol} Announces Stock Buyback Program",
+            f"{symbol} Receives Positive Analyst Coverage",
+            f"{symbol} Completes Successful Product Launch"
+        ]
+        
+        new_high_catalysts = [
+            f"{symbol} Breaks Out on Heavy Volume After Analyst Upgrade",
+            f"{symbol} Reaches New Highs on Bullish Industry Outlook",
+            f"{symbol} Surges After Patent Approval Announcement",
+            f"{symbol} Makes New Highs After Competitor Stumbles",
+            f"{symbol} Rallies on Positive Phase 3 Trial Results"
+        ]
+        
+        if pattern_type == 'bull_flag':
+            return random.choice(bull_flag_catalysts)
+        elif pattern_type == 'micro_pullback':
+            return random.choice(micro_pullback_catalysts)
+        else:  # new_high_breakout
+            return random.choice(new_high_catalysts)
