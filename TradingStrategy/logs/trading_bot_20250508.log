@@ -1,0 +1,189 @@
+2025-05-08 16:47:53,034 - INFO - Trading Bot initialized with $10000.00
+2025-05-08 16:48:48,466 - INFO - Trading Bot initialized with $10000.00
+2025-05-08 16:49:07,227 - INFO - Trading Bot initialized with $10000.00
+2025-05-08 16:52:57,599 - INFO - Trading Bot initialized with $10000.00
+2025-05-08 16:53:20,690 - INFO - Trading Bot initialized with $10000.00
+2025-05-08 21:16:25,486 - INFO - Trading Bot initialized with $10000.00
+2025-05-08 21:16:25,897 - INFO - Starting backtest for GPUS
+2025-05-08 21:16:25,897 - INFO - Backtest period: 2025-05-02 to 2025-05-08
+2025-05-08 21:16:25,897 - INFO - Requesting 7 D of historical data for GPUS
+2025-05-08 21:16:26,661 - INFO - Retrieved 2671 data points for GPUS
+2025-05-08 21:16:26,681 - INFO - Processing GPUS for 2025-04-30
+2025-05-08 21:16:26,682 - INFO - GPUS does not meet all 5 conditions on 2025-04-30
+2025-05-08 21:16:26,688 - INFO - Processing GPUS for 2025-05-01
+2025-05-08 21:16:26,689 - INFO - GPUS does not meet all 5 conditions on 2025-05-01
+2025-05-08 21:16:26,695 - INFO - Processing GPUS for 2025-05-02
+2025-05-08 21:16:26,696 - INFO - GPUS does not meet all 5 conditions on 2025-05-02
+2025-05-08 21:16:26,702 - INFO - Processing GPUS for 2025-05-05
+2025-05-08 21:16:26,703 - INFO - GPUS meets all 5 conditions on 2025-05-05
+2025-05-08 21:16:26,703 - INFO - Entry signal (micro_pullback) at 2025-05-05 09:34:00-04:00: GPUS at $3.50, stop: $3.31, target: $3.88, shares: 526
+2025-05-08 21:16:26,703 - INFO - Stop loss at 2025-05-05 09:34:00-04:00: GPUS at $3.31, PnL: $-99.94
+2025-05-08 21:16:26,705 - INFO - Entry signal (new_high_breakout) at 2025-05-05 09:37:00-04:00: GPUS at $3.75, stop: $3.24, target: $4.77, shares: 194
+2025-05-08 21:16:26,706 - INFO - Entry signal (first_pullback) at 2025-05-05 09:38:00-04:00: GPUS at $3.83, stop: $3.24, target: $5.01, shares: 167
+2025-05-08 21:16:26,712 - INFO - Entry signal (first_pullback) at 2025-05-05 09:46:00-04:00: GPUS at $4.04, stop: $3.40, target: $5.32, shares: 154
+2025-05-08 21:16:26,714 - INFO - Entry signal (micro_pullback) at 2025-05-05 09:49:00-04:00: GPUS at $4.26, stop: $4.06, target: $4.66, shares: 495
+2025-05-08 21:16:26,715 - INFO - Stop loss at 2025-05-05 09:49:00-04:00: GPUS at $4.06, PnL: $-99.00
+2025-05-08 21:16:26,717 - INFO - Entry signal (first_pullback) at 2025-05-05 09:52:00-04:00: GPUS at $4.24, stop: $3.95, target: $4.82, shares: 338
+2025-05-08 21:16:26,718 - INFO - Entry signal (first_pullback) at 2025-05-05 09:53:00-04:00: GPUS at $4.62, stop: $3.95, target: $5.96, shares: 146
+2025-05-08 21:16:26,722 - INFO - Entry signal (micro_pullback) at 2025-05-05 09:59:00-04:00: GPUS at $4.63, stop: $4.34, target: $5.21, shares: 337
+2025-05-08 21:16:26,724 - INFO - Stop loss at 2025-05-05 10:02:00-04:00: GPUS at $4.34, PnL: $-97.73
+2025-05-08 21:16:26,726 - INFO - Entry signal (first_pullback) at 2025-05-05 10:04:00-04:00: GPUS at $4.26, stop: $4.05, target: $4.68, shares: 462
+2025-05-08 21:16:26,730 - INFO - Stop loss at 2025-05-05 10:10:00-04:00: GPUS at $4.05, PnL: $-96.97
+2025-05-08 21:16:26,733 - INFO - Entry signal (new_high_breakout) at 2025-05-05 10:16:00-04:00: GPUS at $4.28, stop: $4.05, target: $4.74, shares: 417
+2025-05-08 21:16:26,737 - INFO - Entry signal (first_pullback) at 2025-05-05 10:21:00-04:00: GPUS at $4.32, stop: $4.11, target: $4.74, shares: 457
+2025-05-08 21:16:26,738 - INFO - Target reached at 2025-05-05 10:23:00-04:00: GPUS at $4.74, PnL: $191.94
+2025-05-08 21:16:26,742 - INFO - Entry signal (new_high_breakout) at 2025-05-05 10:29:00-04:00: GPUS at $5.30, stop: $4.61, target: $6.68, shares: 142
+2025-05-08 21:16:26,746 - INFO - Entry signal (first_pullback) at 2025-05-05 10:34:00-04:00: GPUS at $4.83, stop: $4.64, target: $5.21, shares: 515
+2025-05-08 21:16:26,746 - INFO - Stop loss at 2025-05-05 10:34:00-04:00: GPUS at $4.64, PnL: $-97.80
+2025-05-08 21:16:26,754 - INFO - Entry signal (first_pullback) at 2025-05-05 10:47:00-04:00: GPUS at $5.17, stop: $4.92, target: $5.67, shares: 388
+2025-05-08 21:16:26,755 - INFO - Entry signal (new_high_breakout) at 2025-05-05 10:48:00-04:00: GPUS at $5.46, stop: $4.94, target: $6.50, shares: 186
+2025-05-08 21:16:26,757 - INFO - Entry signal (micro_pullback) at 2025-05-05 10:50:00-04:00: GPUS at $5.48, stop: $5.14, target: $6.16, shares: 285
+2025-05-08 21:16:26,758 - INFO - Entry signal (first_pullback) at 2025-05-05 10:52:00-04:00: GPUS at $5.59, stop: $5.14, target: $6.49, shares: 215
+2025-05-08 21:16:26,759 - INFO - Entry signal (first_pullback) at 2025-05-05 10:53:00-04:00: GPUS at $5.78, stop: $5.22, target: $6.90, shares: 173
+2025-05-08 21:16:26,761 - INFO - Entry signal (micro_pullback) at 2025-05-05 10:55:00-04:00: GPUS at $5.82, stop: $5.61, target: $6.24, shares: 461
+2025-05-08 21:16:26,762 - INFO - Stop loss at 2025-05-05 10:56:00-04:00: GPUS at $5.61, PnL: $-96.81
+2025-05-08 21:16:26,764 - INFO - Entry signal (first_pullback) at 2025-05-05 10:58:00-04:00: GPUS at $5.85, stop: $5.41, target: $6.73, shares: 218
+2025-05-08 21:16:26,766 - INFO - Entry signal (first_pullback) at 2025-05-05 11:01:00-04:00: GPUS at $6.16, stop: $5.63, target: $7.22, shares: 180
+2025-05-08 21:16:26,768 - INFO - Entry signal (micro_pullback) at 2025-05-05 11:03:00-04:00: GPUS at $6.82, stop: $5.80, target: $8.86, shares: 94
+2025-05-08 21:16:26,770 - INFO - Entry signal (micro_pullback) at 2025-05-05 11:05:00-04:00: GPUS at $6.72, stop: $6.48, target: $7.20, shares: 400
+2025-05-08 21:16:26,770 - INFO - Stop loss at 2025-05-05 11:06:00-04:00: GPUS at $6.48, PnL: $-96.00
+2025-05-08 21:16:26,777 - INFO - Entry signal (new_high_breakout) at 2025-05-05 11:16:00-04:00: GPUS at $6.66, stop: $6.26, target: $7.46, shares: 237
+2025-05-08 21:16:26,778 - INFO - Entry signal (first_pullback) at 2025-05-05 11:18:00-04:00: GPUS at $6.98, stop: $6.31, target: $8.32, shares: 141
+2025-05-08 21:16:26,778 - INFO - Stop loss at 2025-05-05 11:18:00-04:00: GPUS at $6.31, PnL: $-94.47
+2025-05-08 21:16:26,782 - INFO - Entry signal (micro_pullback) at 2025-05-05 11:23:00-04:00: GPUS at $7.62, stop: $7.09, target: $8.68, shares: 177
+2025-05-08 21:16:26,786 - INFO - Stop loss at 2025-05-05 11:28:00-04:00: GPUS at $7.09, PnL: $-93.79
+2025-05-08 21:16:26,795 - INFO - Market reversal detected, stopping trading for the day.
+2025-05-08 21:16:26,802 - INFO - Processing GPUS for 2025-05-06
+2025-05-08 21:16:26,802 - INFO - GPUS does not meet all 5 conditions on 2025-05-06
+2025-05-08 21:16:26,809 - INFO - Processing GPUS for 2025-05-07
+2025-05-08 21:16:26,809 - INFO - GPUS meets all 5 conditions on 2025-05-07
+2025-05-08 21:16:26,811 - INFO - Entry signal (micro_pullback) at 2025-05-07 09:38:00-04:00: GPUS at $6.39, stop: $5.78, target: $7.61, shares: 152
+2025-05-08 21:16:26,813 - INFO - Entry signal (first_pullback) at 2025-05-07 09:40:00-04:00: GPUS at $6.56, stop: $5.78, target: $8.12, shares: 119
+2025-05-08 21:16:26,816 - INFO - Entry signal (first_pullback) at 2025-05-07 09:43:00-04:00: GPUS at $6.69, stop: $6.18, target: $7.71, shares: 182
+2025-05-08 21:16:26,817 - INFO - Entry signal (first_pullback) at 2025-05-07 09:44:00-04:00: GPUS at $6.97, stop: $6.20, target: $8.51, shares: 121
+2025-05-08 21:16:26,818 - INFO - Entry signal (micro_pullback) at 2025-05-07 09:45:00-04:00: GPUS at $7.00, stop: $6.61, target: $7.78, shares: 238
+2025-05-08 21:16:26,822 - INFO - Stop loss at 2025-05-07 09:50:00-04:00: GPUS at $6.61, PnL: $-92.82
+2025-05-08 21:16:26,823 - INFO - Entry signal (first_pullback) at 2025-05-07 09:52:00-04:00: GPUS at $6.87, stop: $6.56, target: $7.49, shares: 297
+2025-05-08 21:16:26,826 - INFO - Target reached at 2025-05-07 09:56:00-04:00: GPUS at $7.49, PnL: $184.14
+2025-05-08 21:16:26,827 - INFO - Entry signal (first_pullback) at 2025-05-07 09:58:00-04:00: GPUS at $7.47, stop: $7.03, target: $8.35, shares: 213
+2025-05-08 21:16:26,830 - INFO - Stop loss at 2025-05-07 10:01:00-04:00: GPUS at $7.03, PnL: $-93.72
+2025-05-08 21:16:26,832 - INFO - Entry signal (first_pullback) at 2025-05-07 10:04:00-04:00: GPUS at $7.68, stop: $6.83, target: $9.38, shares: 109
+2025-05-08 21:16:26,835 - INFO - Entry signal (first_pullback) at 2025-05-07 10:08:00-04:00: GPUS at $7.54, stop: $7.12, target: $8.38, shares: 221
+2025-05-08 21:16:26,838 - INFO - Entry signal (first_pullback) at 2025-05-07 10:13:00-04:00: GPUS at $7.50, stop: $7.15, target: $8.20, shares: 266
+2025-05-08 21:16:26,840 - INFO - Stop loss at 2025-05-07 10:15:00-04:00: GPUS at $7.15, PnL: $-93.10
+2025-05-08 21:16:26,844 - INFO - Entry signal (micro_pullback) at 2025-05-07 10:22:00-04:00: GPUS at $7.88, stop: $7.72, target: $8.20, shares: 576
+2025-05-08 21:16:26,845 - INFO - Stop loss at 2025-05-07 10:23:00-04:00: GPUS at $7.72, PnL: $-92.16
+2025-05-08 21:16:26,848 - INFO - Entry signal (first_pullback) at 2025-05-07 10:26:00-04:00: GPUS at $7.97, stop: $7.27, target: $9.37, shares: 130
+2025-05-08 21:16:26,849 - INFO - Entry signal (micro_pullback) at 2025-05-07 10:28:00-04:00: GPUS at $8.14, stop: $7.80, target: $8.82, shares: 268
+2025-05-08 21:16:26,850 - INFO - Stop loss at 2025-05-07 10:30:00-04:00: GPUS at $7.80, PnL: $-91.09
+2025-05-08 21:16:26,854 - INFO - Entry signal (first_pullback) at 2025-05-07 10:34:00-04:00: GPUS at $7.89, stop: $7.52, target: $8.63, shares: 244
+2025-05-08 21:16:26,857 - INFO - Stop loss at 2025-05-07 10:39:00-04:00: GPUS at $7.52, PnL: $-90.28
+2025-05-08 21:16:26,863 - INFO - Market reversal detected, stopping trading for the day.
+2025-05-08 21:16:26,869 - INFO - Processing GPUS for 2025-05-08
+2025-05-08 21:16:26,870 - INFO - GPUS meets all 5 conditions on 2025-05-08
+2025-05-08 21:16:26,872 - INFO - Entry signal (micro_pullback) at 2025-05-08 09:38:00-04:00: GPUS at $8.88, stop: $8.40, target: $9.84, shares: 186
+2025-05-08 21:16:26,874 - INFO - Stop loss at 2025-05-08 09:40:00-04:00: GPUS at $8.40, PnL: $-89.28
+2025-05-08 21:16:26,881 - INFO - Entry signal (first_pullback) at 2025-05-08 09:51:00-04:00: GPUS at $9.28, stop: $8.71, target: $10.42, shares: 155
+2025-05-08 21:16:26,886 - INFO - Stop loss at 2025-05-08 10:00:00-04:00: GPUS at $8.71, PnL: $-88.33
+2025-05-08 21:16:26,891 - INFO - Entry signal (first_pullback) at 2025-05-08 10:08:00-04:00: GPUS at $9.21, stop: $8.80, target: $10.03, shares: 213
+2025-05-08 21:16:26,893 - INFO - Entry signal (first_pullback) at 2025-05-08 10:09:00-04:00: GPUS at $9.39, stop: $8.80, target: $10.57, shares: 148
+2025-05-08 21:16:26,894 - INFO - Entry signal (micro_pullback) at 2025-05-08 10:11:00-04:00: GPUS at $9.85, stop: $9.20, target: $11.15, shares: 134
+2025-05-08 21:16:26,896 - INFO - Entry signal (first_pullback) at 2025-05-08 10:14:00-04:00: GPUS at $9.80, stop: $9.30, target: $10.80, shares: 175
+2025-05-08 21:16:26,897 - INFO - Entry signal (first_pullback) at 2025-05-08 10:15:00-04:00: GPUS at $9.89, stop: $9.52, target: $10.63, shares: 237
+2025-05-08 21:16:26,900 - INFO - Stop loss at 2025-05-08 10:18:00-04:00: GPUS at $9.52, PnL: $-87.69
+2025-05-08 21:16:26,902 - INFO - Entry signal (first_pullback) at 2025-05-08 10:21:00-04:00: GPUS at $9.62, stop: $9.35, target: $10.16, shares: 321
+2025-05-08 21:16:26,903 - INFO - Stop loss at 2025-05-08 10:21:00-04:00: GPUS at $9.35, PnL: $-86.67
+2025-05-08 21:16:26,906 - INFO - Entry signal (first_pullback) at 2025-05-08 10:27:00-04:00: GPUS at $9.25, stop: $8.93, target: $9.89, shares: 268
+2025-05-08 21:16:26,907 - INFO - Market reversal detected, stopping trading for the day.
+2025-05-08 21:17:14,690 - INFO - Trading Bot initialized with $10000.00
+2025-05-08 21:17:14,796 - INFO - Starting backtest for GPUS
+2025-05-08 21:17:14,797 - INFO - Backtest period: 2025-05-02 to 2025-05-08
+2025-05-08 21:17:14,797 - INFO - Requesting 7 D of historical data for GPUS
+2025-05-08 21:17:15,411 - INFO - Retrieved 2672 data points for GPUS
+2025-05-08 21:17:15,427 - INFO - Processing GPUS for 2025-04-30
+2025-05-08 21:17:15,428 - INFO - GPUS does not meet all 5 conditions on 2025-04-30
+2025-05-08 21:17:15,434 - INFO - Processing GPUS for 2025-05-01
+2025-05-08 21:17:15,435 - INFO - GPUS does not meet all 5 conditions on 2025-05-01
+2025-05-08 21:17:15,442 - INFO - Processing GPUS for 2025-05-02
+2025-05-08 21:17:15,442 - INFO - GPUS does not meet all 5 conditions on 2025-05-02
+2025-05-08 21:17:15,449 - INFO - Processing GPUS for 2025-05-05
+2025-05-08 21:17:15,449 - INFO - GPUS meets all 5 conditions on 2025-05-05
+2025-05-08 21:17:15,450 - INFO - Entry signal (micro_pullback) at 2025-05-05 09:34:00-04:00: GPUS at $3.50, stop: $3.31, target: $3.88, shares: 526
+2025-05-08 21:17:15,450 - INFO - Stop loss at 2025-05-05 09:34:00-04:00: GPUS at $3.31, PnL: $-99.94
+2025-05-08 21:17:15,452 - INFO - Entry signal (new_high_breakout) at 2025-05-05 09:37:00-04:00: GPUS at $3.75, stop: $3.24, target: $4.77, shares: 194
+2025-05-08 21:17:15,453 - INFO - Entry signal (first_pullback) at 2025-05-05 09:38:00-04:00: GPUS at $3.83, stop: $3.24, target: $5.01, shares: 167
+2025-05-08 21:17:15,459 - INFO - Entry signal (first_pullback) at 2025-05-05 09:46:00-04:00: GPUS at $4.04, stop: $3.40, target: $5.32, shares: 154
+2025-05-08 21:17:15,461 - INFO - Entry signal (micro_pullback) at 2025-05-05 09:49:00-04:00: GPUS at $4.26, stop: $4.06, target: $4.66, shares: 495
+2025-05-08 21:17:15,461 - INFO - Stop loss at 2025-05-05 09:49:00-04:00: GPUS at $4.06, PnL: $-99.00
+2025-05-08 21:17:15,463 - INFO - Entry signal (first_pullback) at 2025-05-05 09:52:00-04:00: GPUS at $4.24, stop: $3.95, target: $4.82, shares: 338
+2025-05-08 21:17:15,464 - INFO - Entry signal (first_pullback) at 2025-05-05 09:53:00-04:00: GPUS at $4.62, stop: $3.95, target: $5.96, shares: 146
+2025-05-08 21:17:15,468 - INFO - Entry signal (micro_pullback) at 2025-05-05 09:59:00-04:00: GPUS at $4.63, stop: $4.34, target: $5.21, shares: 337
+2025-05-08 21:17:15,470 - INFO - Stop loss at 2025-05-05 10:02:00-04:00: GPUS at $4.34, PnL: $-97.73
+2025-05-08 21:17:15,471 - INFO - Entry signal (first_pullback) at 2025-05-05 10:04:00-04:00: GPUS at $4.26, stop: $4.05, target: $4.68, shares: 462
+2025-05-08 21:17:15,475 - INFO - Stop loss at 2025-05-05 10:10:00-04:00: GPUS at $4.05, PnL: $-96.97
+2025-05-08 21:17:15,478 - INFO - Entry signal (new_high_breakout) at 2025-05-05 10:16:00-04:00: GPUS at $4.28, stop: $4.05, target: $4.74, shares: 417
+2025-05-08 21:17:15,481 - INFO - Entry signal (first_pullback) at 2025-05-05 10:21:00-04:00: GPUS at $4.32, stop: $4.11, target: $4.74, shares: 457
+2025-05-08 21:17:15,483 - INFO - Target reached at 2025-05-05 10:23:00-04:00: GPUS at $4.74, PnL: $191.94
+2025-05-08 21:17:15,487 - INFO - Entry signal (new_high_breakout) at 2025-05-05 10:29:00-04:00: GPUS at $5.30, stop: $4.61, target: $6.68, shares: 142
+2025-05-08 21:17:15,490 - INFO - Entry signal (first_pullback) at 2025-05-05 10:34:00-04:00: GPUS at $4.83, stop: $4.64, target: $5.21, shares: 515
+2025-05-08 21:17:15,491 - INFO - Stop loss at 2025-05-05 10:34:00-04:00: GPUS at $4.64, PnL: $-97.80
+2025-05-08 21:17:15,499 - INFO - Entry signal (first_pullback) at 2025-05-05 10:47:00-04:00: GPUS at $5.17, stop: $4.92, target: $5.67, shares: 388
+2025-05-08 21:17:15,499 - INFO - Entry signal (new_high_breakout) at 2025-05-05 10:48:00-04:00: GPUS at $5.46, stop: $4.94, target: $6.50, shares: 186
+2025-05-08 21:17:15,501 - INFO - Entry signal (micro_pullback) at 2025-05-05 10:50:00-04:00: GPUS at $5.48, stop: $5.14, target: $6.16, shares: 285
+2025-05-08 21:17:15,502 - INFO - Entry signal (first_pullback) at 2025-05-05 10:52:00-04:00: GPUS at $5.59, stop: $5.14, target: $6.49, shares: 215
+2025-05-08 21:17:15,503 - INFO - Entry signal (first_pullback) at 2025-05-05 10:53:00-04:00: GPUS at $5.78, stop: $5.22, target: $6.90, shares: 173
+2025-05-08 21:17:15,505 - INFO - Entry signal (micro_pullback) at 2025-05-05 10:55:00-04:00: GPUS at $5.82, stop: $5.61, target: $6.24, shares: 461
+2025-05-08 21:17:15,506 - INFO - Stop loss at 2025-05-05 10:56:00-04:00: GPUS at $5.61, PnL: $-96.81
+2025-05-08 21:17:15,508 - INFO - Entry signal (first_pullback) at 2025-05-05 10:58:00-04:00: GPUS at $5.85, stop: $5.41, target: $6.73, shares: 218
+2025-05-08 21:17:15,510 - INFO - Entry signal (first_pullback) at 2025-05-05 11:01:00-04:00: GPUS at $6.16, stop: $5.63, target: $7.22, shares: 180
+2025-05-08 21:17:15,511 - INFO - Entry signal (micro_pullback) at 2025-05-05 11:03:00-04:00: GPUS at $6.82, stop: $5.80, target: $8.86, shares: 94
+2025-05-08 21:17:15,513 - INFO - Entry signal (micro_pullback) at 2025-05-05 11:05:00-04:00: GPUS at $6.72, stop: $6.48, target: $7.20, shares: 400
+2025-05-08 21:17:15,514 - INFO - Stop loss at 2025-05-05 11:06:00-04:00: GPUS at $6.48, PnL: $-96.00
+2025-05-08 21:17:15,521 - INFO - Entry signal (new_high_breakout) at 2025-05-05 11:16:00-04:00: GPUS at $6.66, stop: $6.26, target: $7.46, shares: 237
+2025-05-08 21:17:15,522 - INFO - Entry signal (first_pullback) at 2025-05-05 11:18:00-04:00: GPUS at $6.98, stop: $6.31, target: $8.32, shares: 141
+2025-05-08 21:17:15,523 - INFO - Stop loss at 2025-05-05 11:18:00-04:00: GPUS at $6.31, PnL: $-94.47
+2025-05-08 21:17:15,526 - INFO - Entry signal (micro_pullback) at 2025-05-05 11:23:00-04:00: GPUS at $7.62, stop: $7.09, target: $8.68, shares: 177
+2025-05-08 21:17:15,530 - INFO - Stop loss at 2025-05-05 11:28:00-04:00: GPUS at $7.09, PnL: $-93.79
+2025-05-08 21:17:15,539 - INFO - Market reversal detected, stopping trading for the day.
+2025-05-08 21:17:15,546 - INFO - Processing GPUS for 2025-05-06
+2025-05-08 21:17:15,546 - INFO - GPUS does not meet all 5 conditions on 2025-05-06
+2025-05-08 21:17:15,553 - INFO - Processing GPUS for 2025-05-07
+2025-05-08 21:17:15,553 - INFO - GPUS meets all 5 conditions on 2025-05-07
+2025-05-08 21:17:15,556 - INFO - Entry signal (micro_pullback) at 2025-05-07 09:38:00-04:00: GPUS at $6.39, stop: $5.78, target: $7.61, shares: 152
+2025-05-08 21:17:15,557 - INFO - Entry signal (first_pullback) at 2025-05-07 09:40:00-04:00: GPUS at $6.56, stop: $5.78, target: $8.12, shares: 119
+2025-05-08 21:17:15,560 - INFO - Entry signal (first_pullback) at 2025-05-07 09:43:00-04:00: GPUS at $6.69, stop: $6.18, target: $7.71, shares: 182
+2025-05-08 21:17:15,561 - INFO - Entry signal (first_pullback) at 2025-05-07 09:44:00-04:00: GPUS at $6.97, stop: $6.20, target: $8.51, shares: 121
+2025-05-08 21:17:15,562 - INFO - Entry signal (micro_pullback) at 2025-05-07 09:45:00-04:00: GPUS at $7.00, stop: $6.61, target: $7.78, shares: 238
+2025-05-08 21:17:15,565 - INFO - Stop loss at 2025-05-07 09:50:00-04:00: GPUS at $6.61, PnL: $-92.82
+2025-05-08 21:17:15,567 - INFO - Entry signal (first_pullback) at 2025-05-07 09:52:00-04:00: GPUS at $6.87, stop: $6.56, target: $7.49, shares: 297
+2025-05-08 21:17:15,570 - INFO - Target reached at 2025-05-07 09:56:00-04:00: GPUS at $7.49, PnL: $184.14
+2025-05-08 21:17:15,571 - INFO - Entry signal (first_pullback) at 2025-05-07 09:58:00-04:00: GPUS at $7.47, stop: $7.03, target: $8.35, shares: 213
+2025-05-08 21:17:15,574 - INFO - Stop loss at 2025-05-07 10:01:00-04:00: GPUS at $7.03, PnL: $-93.72
+2025-05-08 21:17:15,576 - INFO - Entry signal (first_pullback) at 2025-05-07 10:04:00-04:00: GPUS at $7.68, stop: $6.83, target: $9.38, shares: 109
+2025-05-08 21:17:15,578 - INFO - Entry signal (first_pullback) at 2025-05-07 10:08:00-04:00: GPUS at $7.54, stop: $7.12, target: $8.38, shares: 221
+2025-05-08 21:17:15,583 - INFO - Entry signal (first_pullback) at 2025-05-07 10:13:00-04:00: GPUS at $7.50, stop: $7.15, target: $8.20, shares: 266
+2025-05-08 21:17:15,584 - INFO - Stop loss at 2025-05-07 10:15:00-04:00: GPUS at $7.15, PnL: $-93.10
+2025-05-08 21:17:15,588 - INFO - Entry signal (micro_pullback) at 2025-05-07 10:22:00-04:00: GPUS at $7.88, stop: $7.72, target: $8.20, shares: 576
+2025-05-08 21:17:15,589 - INFO - Stop loss at 2025-05-07 10:23:00-04:00: GPUS at $7.72, PnL: $-92.16
+2025-05-08 21:17:15,591 - INFO - Entry signal (first_pullback) at 2025-05-07 10:26:00-04:00: GPUS at $7.97, stop: $7.27, target: $9.37, shares: 130
+2025-05-08 21:17:15,592 - INFO - Entry signal (micro_pullback) at 2025-05-07 10:28:00-04:00: GPUS at $8.14, stop: $7.80, target: $8.82, shares: 268
+2025-05-08 21:17:15,594 - INFO - Stop loss at 2025-05-07 10:30:00-04:00: GPUS at $7.80, PnL: $-91.09
+2025-05-08 21:17:15,597 - INFO - Entry signal (first_pullback) at 2025-05-07 10:34:00-04:00: GPUS at $7.89, stop: $7.52, target: $8.63, shares: 244
+2025-05-08 21:17:15,601 - INFO - Stop loss at 2025-05-07 10:39:00-04:00: GPUS at $7.52, PnL: $-90.28
+2025-05-08 21:17:15,607 - INFO - Market reversal detected, stopping trading for the day.
+2025-05-08 21:17:15,614 - INFO - Processing GPUS for 2025-05-08
+2025-05-08 21:17:15,615 - INFO - GPUS meets all 5 conditions on 2025-05-08
+2025-05-08 21:17:15,617 - INFO - Entry signal (micro_pullback) at 2025-05-08 09:38:00-04:00: GPUS at $8.88, stop: $8.40, target: $9.84, shares: 186
+2025-05-08 21:17:15,619 - INFO - Stop loss at 2025-05-08 09:40:00-04:00: GPUS at $8.40, PnL: $-89.28
+2025-05-08 21:17:15,626 - INFO - Entry signal (first_pullback) at 2025-05-08 09:51:00-04:00: GPUS at $9.28, stop: $8.71, target: $10.42, shares: 155
+2025-05-08 21:17:15,632 - INFO - Stop loss at 2025-05-08 10:00:00-04:00: GPUS at $8.71, PnL: $-88.33
+2025-05-08 21:17:15,637 - INFO - Entry signal (first_pullback) at 2025-05-08 10:08:00-04:00: GPUS at $9.21, stop: $8.80, target: $10.03, shares: 213
+2025-05-08 21:17:15,638 - INFO - Entry signal (first_pullback) at 2025-05-08 10:09:00-04:00: GPUS at $9.39, stop: $8.80, target: $10.57, shares: 148
+2025-05-08 21:17:15,639 - INFO - Entry signal (micro_pullback) at 2025-05-08 10:11:00-04:00: GPUS at $9.85, stop: $9.20, target: $11.15, shares: 134
+2025-05-08 21:17:15,641 - INFO - Entry signal (first_pullback) at 2025-05-08 10:14:00-04:00: GPUS at $9.80, stop: $9.30, target: $10.80, shares: 175
+2025-05-08 21:17:15,642 - INFO - Entry signal (first_pullback) at 2025-05-08 10:15:00-04:00: GPUS at $9.89, stop: $9.52, target: $10.63, shares: 237
+2025-05-08 21:17:15,644 - INFO - Stop loss at 2025-05-08 10:18:00-04:00: GPUS at $9.52, PnL: $-87.69
+2025-05-08 21:17:15,646 - INFO - Entry signal (first_pullback) at 2025-05-08 10:21:00-04:00: GPUS at $9.62, stop: $9.35, target: $10.16, shares: 321
+2025-05-08 21:17:15,647 - INFO - Stop loss at 2025-05-08 10:21:00-04:00: GPUS at $9.35, PnL: $-86.67
+2025-05-08 21:17:15,650 - INFO - Entry signal (first_pullback) at 2025-05-08 10:27:00-04:00: GPUS at $9.25, stop: $8.93, target: $9.89, shares: 268
+2025-05-08 21:17:15,651 - INFO - Market reversal detected, stopping trading for the day.

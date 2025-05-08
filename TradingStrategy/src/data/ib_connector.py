@@ -11,7 +11,7 @@ import time
 from datetime import datetime, timedelta
 import pandas as pd
 from dotenv import load_dotenv
-from ib_insync import IB, Contract, Stock, Forex, Index, Bars, util
+from ib_insync import IB, Contract, Stock, Forex, Index, util
 
 # Configure logging
 logger = logging.getLogger(__name__)

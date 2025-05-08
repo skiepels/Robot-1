@@ -18,7 +18,6 @@ import time
 from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-from backtest.backtest_engine import main
 
 from src.data.ib_connector import IBConnector
 from src.conditions.condition1_price import PriceCondition
@@ -29,6 +28,10 @@ from src.conditions.condition5_float import FloatCondition
 from src.entry.candlestick import CandlestickPatterns
 from src.trading.risk_manager import RiskManager
 from src.utils.logger import setup_logger
+
+
+
+
 
 # Load environment variables
 load_dotenv()
@@ -203,9 +206,9 @@ class BacktestEngine:
             
             # Merge back to minute data
             dates = df.index.floor('D')
-            df['date'] = dates
-            df = pd.merge(df, daily[['day_change_pct']], left_on='date', right_index=True, how='left')
-            df.drop('date', axis=1, inplace=True)
+            df['date_column'] = dates
+            df = pd.merge(df, daily[['day_change_pct']], left_on='date_column', right_index=True, how='left')
+            df.drop('date_column', axis=1, inplace=True)
         
         return df
     
