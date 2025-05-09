@@ -1,40 +1,63 @@
-# run_backtest.py
-import sys
-import argparse
-from backtest.backtest_engine import BacktestEngine
+#!/usr/bin/env python
+"""
+Run Pattern Backtest
 
-def main():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Backtest trading strategy')
+This script runs a backtest using the specialized candlestick patterns:
+Bull Flag, Bull Pennant, and Flat Top Breakout.
+
+Usage:
+python run_pattern_backtest.py --symbol GPUS --start-date 2023-05-02 --end-date 2023-05-08
+"""
+
+import sys
+import os
+import argparse
+from datetime import datetime, timedelta
+from pattern_backtest import PatternBacktester
+
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description='Run pattern-based backtest')
     
-    parser.add_argument('--start-date', type=str, default=None,
+    parser.add_argument('--symbol', type=str, default='GPUS',
+                      help='Stock symbol to backtest')
+    
+    parser.add_argument('--start-date', type=str, default='2023-05-02',
                       help='Start date for backtest (YYYY-MM-DD)')
     
-    parser.add_argument('--end-date', type=str, default=None,
+    parser.add_argument('--end-date', type=str, default='2023-05-08',
                       help='End date for backtest (YYYY-MM-DD)')
     
-    parser.add_argument('--capital', type=float, default=None,
+    parser.add_argument('--capital', type=float, default=10000.0,
                       help='Initial capital for backtest')
     
-    parser.add_argument('--symbols', type=str, nargs='+', default=['GPUS'],
-                      help='Symbols to backtest, space separated')
+    return parser.parse_args()
+
+def run_backtest():
+    """Run the pattern backtest with the provided parameters."""
+    # Parse command line arguments
+    args = parse_args()
     
-    parser.add_argument('--config', type=str, default='config/config.yaml',
-                      help='Path to configuration file')
+    # Extract parameters
+    symbol = args.symbol
+    start_date = args.start_date
+    end_date = args.end_date
+    initial_capital = args.capital
     
-    args = parser.parse_args()
+    print(f"Running pattern backtest for {symbol} from {start_date} to {end_date}")
     
     # Create backtest engine
-    engine = BacktestEngine(
-        config_file=args.config,
-        start_date=args.start_date,
-        end_date=args.end_date,
-        initial_capital=args.capital,
-        symbols=args.symbols
+    backtest = PatternBacktester(
+        start_date=start_date,
+        end_date=end_date,
+        initial_capital=initial_capital,
+        symbols=[symbol]
     )
     
     # Run backtest
-    engine.run_backtest()
+    results = backtest.run_backtest()
+    
+    return results
 
 if __name__ == "__main__":
-    main()
+    run_backtest()
