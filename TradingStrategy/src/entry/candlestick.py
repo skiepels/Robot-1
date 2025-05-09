@@ -1,10 +1,19 @@
 """
 Candlestick Pattern Recognition Module
 
-This module implements the candlestick pattern detection logic for various entry patterns:
-- Bull Flag
-- Micro Pullback
-- New High Breakout
+This module implements the detection of triple candlestick patterns:
+
+Bullish Patterns:
+- Morning Star
+- Morning Doji Star
+- Three White Soldiers
+- Rising Three
+
+Bearish Patterns:
+- Evening Star
+- Evening Doji Star
+- Three Black Crows
+- Falling Three
 """
 
 import numpy as np
@@ -16,341 +25,412 @@ logger = logging.getLogger(__name__)
 
 class CandlestickPatterns:
     """
-    Detects various candlestick patterns for trade entry signals.
+    Detects various triple candlestick patterns for trade entry signals.
     
     This class contains methods to identify high-probability entry patterns
-    commonly used in momentum day trading strategies.
+    using triple candlestick formations in price data.
     """
     
     def __init__(self):
         """Initialize the candlestick pattern detector."""
         pass
     
-    def is_bullish_candle(self, open_price, close_price):
+    def is_bullish_candle(self, candle):
         """
         Determine if a candle is bullish (close > open).
         
         Parameters:
         -----------
-        open_price: float
-            Opening price
-        close_price: float
-            Closing price
+        candle: pandas.Series
+            Candle data with 'open' and 'close' values
             
         Returns:
         --------
         bool: True if bullish, False otherwise
         """
-        return close_price > open_price
+        return candle['close'] > candle['open']
     
-    def is_bearish_candle(self, open_price, close_price):
+    def is_bearish_candle(self, candle):
         """
         Determine if a candle is bearish (close < open).
         
         Parameters:
         -----------
-        open_price: float
-            Opening price
-        close_price: float
-            Closing price
+        candle: pandas.Series
+            Candle data with 'open' and 'close' values
             
         Returns:
         --------
         bool: True if bearish, False otherwise
         """
-        return close_price < open_price
+        return candle['close'] < candle['open']
     
-    def calculate_body_size(self, open_price, close_price):
+    def is_doji(self, data, index=-1, threshold=0.1):
+        """
+        Check if the candle at the given index is a doji.
+        
+        Parameters:
+        -----------
+        data: pandas.DataFrame
+            OHLCV data
+        index: int
+            Index of the candle to check (-1 means the last candle)
+        threshold: float
+            Maximum ratio of body to range to be considered a doji
+            
+        Returns:
+        --------
+        bool: True if the candle is a doji
+        """
+        candle = data.iloc[index]
+        body_size = abs(candle['close'] - candle['open'])
+        candle_range = candle['high'] - candle['low']
+        
+        if candle_range == 0:
+            return False
+        
+        body_to_range_ratio = body_size / candle_range
+        return body_to_range_ratio <= threshold
+    
+    def calculate_body_size(self, candle):
         """
         Calculate the absolute size of the candle body.
         
         Parameters:
         -----------
-        open_price: float
-            Opening price
-        close_price: float
-            Closing price
+        candle: pandas.Series
+            Candle data with 'open' and 'close' values
             
         Returns:
         --------
         float: Absolute size of the candle body
         """
-        return abs(close_price - open_price)
+        return abs(candle['close'] - candle['open'])
     
-    def calculate_upper_wick(self, open_price, close_price, high_price):
+    def calculate_range(self, candle):
+        """
+        Calculate the full range of a candle (high to low).
+        
+        Parameters:
+        -----------
+        candle: pandas.Series
+            Candle data with 'high' and 'low' values
+            
+        Returns:
+        --------
+        float: Range of the candle
+        """
+        return candle['high'] - candle['low']
+    
+    def calculate_upper_wick(self, candle):
         """
         Calculate the size of the upper wick/shadow.
         
         Parameters:
         -----------
-        open_price: float
-            Opening price
-        close_price: float
-            Closing price
-        high_price: float
-            High price
+        candle: pandas.Series
+            Candle data with 'open', 'close', and 'high' values
             
         Returns:
         --------
         float: Size of the upper wick
         """
-        return high_price - max(open_price, close_price)
+        return candle['high'] - max(candle['open'], candle['close'])
     
-    def calculate_lower_wick(self, open_price, close_price, low_price):
+    def calculate_lower_wick(self, candle):
         """
         Calculate the size of the lower wick/shadow.
         
         Parameters:
         -----------
-        open_price: float
-            Opening price
-        close_price: float
-            Closing price
-        low_price: float
-            Low price
+        candle: pandas.Series
+            Candle data with 'open', 'close', and 'low' values
             
         Returns:
         --------
         float: Size of the lower wick
         """
-        return min(open_price, close_price) - low_price
+        return min(candle['open'], candle['close']) - candle['low']
     
-    def is_bull_flag(self, df):
+    def detect_morning_star(self, data, doji_required=False):
         """
-        Detect a Bull Flag pattern in the price data.
-        
-        A bull flag consists of a strong upward move (the pole)
-        followed by a consolidation period with lower highs (the flag).
+        Detect a Morning Star pattern (bullish reversal).
         
         Parameters:
         -----------
-        df: pandas.DataFrame
-            OHLCV data with at least 5-10 candles
+        data: pandas.DataFrame
+            OHLCV data with at least 3 candles
+        doji_required: bool
+            If True, requires the middle candle to be a doji (Morning Doji Star)
             
         Returns:
         --------
-        bool: True if a bull flag pattern is detected
+        bool: True if the pattern is detected
         """
-        if df is None or len(df) < 7:
+        if len(data) < 3:
             return False
         
-        try:
-            # Make a copy to avoid modifying the original
-            data = df.copy()
-            
-            # Get the most recent 7 candles
-            recent_data = data.iloc[-7:]
-            
-            # Check for a strong upward move in the first 3 candles (the pole)
-            first_3_candles = recent_data.iloc[:3]
-            pole_start_price = first_3_candles['open'].iloc[0]
-            pole_end_price = first_3_candles['close'].iloc[-1]
-            
-            # Calculate pole percentage gain
-            pole_gain_pct = (pole_end_price / pole_start_price - 1) * 100
-            
-            # The pole should show a significant increase (at least 3%)
-            if pole_gain_pct < 3:
-                return False
-            
-            # Check for consolidation with lower highs (the flag)
-            flag_candles = recent_data.iloc[3:]
-            
-            # Check for at least 2 lower highs
-            previous_high = first_3_candles['high'].max()
-            lower_highs_count = 0
-            
-            for i in range(len(flag_candles) - 1):
-                current_high = flag_candles['high'].iloc[i]
-                
-                if current_high < previous_high:
-                    lower_highs_count += 1
-                
-                previous_high = current_high
-            
-            # Need at least 2 lower highs to confirm the flag
-            if lower_highs_count < 2:
-                return False
-            
-            # Check volume pattern - should decrease during flag
-            if 'volume' in flag_candles.columns:
-                first_half_vol = flag_candles['volume'].iloc[:len(flag_candles)//2].mean()
-                second_half_vol = flag_candles['volume'].iloc[len(flag_candles)//2:].mean()
-                
-                # Volume should decrease in the second half of the flag
-                if second_half_vol >= first_half_vol:
-                    return False
-            
-            # Check for breakout in the last candle
-            last_candle = recent_data.iloc[-1]
-            flag_high = recent_data.iloc[3:-1]['high'].max()
-            
-            # Last candle should be bullish
-            if not self.is_bullish_candle(last_candle['open'], last_candle['close']):
-                return False
-            
-            # Last candle should break above the flag high
-            if last_candle['close'] <= flag_high:
-                return False
-            
-            # All criteria met, bull flag confirmed
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error detecting bull flag: {e}")
+        # Get the relevant candles
+        first = data.iloc[-3]
+        middle = data.iloc[-2]
+        last = data.iloc[-1]
+        
+        # First candle should be bearish (close < open)
+        if first['close'] >= first['open']:
             return False
+        
+        # Last candle should be bullish (close > open)
+        if last['close'] <= last['open']:
+            return False
+        
+        # Middle candle should have a small body
+        first_body = abs(first['close'] - first['open'])
+        middle_body = abs(middle['close'] - middle['open'])
+        
+        if middle_body > 0.3 * first_body:  # Middle body should be less than 30% of first body
+            return False
+        
+        # If doji is required, check that middle candle is a doji
+        if doji_required and not self.is_doji(data, -2):
+            return False
+        
+        # Check if last candle closes well into the first candle's body
+        first_midpoint = (first['open'] + first['close']) / 2
+        if last['close'] <= first_midpoint:
+            return False
+        
+        return True
     
-    def is_micro_pullback(self, df):
+    def detect_evening_star(self, data, doji_required=False):
         """
-        Detect a Micro Pullback pattern in the price data.
-        
-        A micro pullback consists of a strong move up, followed by
-        a small retracement (red candle or candle with long lower wick),
-        then a breakout above the pullback high.
+        Detect an Evening Star pattern (bearish reversal).
         
         Parameters:
         -----------
-        df: pandas.DataFrame
-            OHLCV data with at least 4-5 candles
+        data: pandas.DataFrame
+            OHLCV data with at least 3 candles
+        doji_required: bool
+            If True, requires the middle candle to be a doji (Evening Doji Star)
             
         Returns:
         --------
-        bool: True if a micro pullback pattern is detected
+        bool: True if the pattern is detected
         """
-        if df is None or len(df) < 5:
+        if len(data) < 3:
             return False
         
-        try:
-            # Make a copy to avoid modifying the original
-            data = df.copy()
-            
-            # Get the most recent 5 candles
-            recent_data = data.iloc[-5:]
-            
-            # Check for uptrend in the first 3 candles
-            first_3_candles = recent_data.iloc[:3]
-            uptrend = first_3_candles['close'].iloc[-1] > first_3_candles['close'].iloc[0]
-            
-            if not uptrend:
-                return False
-            
-            # Check for micro pullback in the 4th candle
-            pullback_candle = recent_data.iloc[-2]
-            
-            # Pullback criteria: either a red candle or a candle with a significant lower wick
-            is_red = pullback_candle['close'] < pullback_candle['open']
-            
-            lower_wick = self.calculate_lower_wick(
-                pullback_candle['open'], 
-                pullback_candle['close'], 
-                pullback_candle['low']
-            )
-            
-            body_size = self.calculate_body_size(pullback_candle['open'], pullback_candle['close'])
-            has_long_lower_wick = lower_wick > body_size * 0.5
-            
-            if not (is_red or has_long_lower_wick):
-                return False
-            
-            # Check for breakout in the last candle
-            last_candle = recent_data.iloc[-1]
-            
-            # Last candle should be bullish
-            if not self.is_bullish_candle(last_candle['open'], last_candle['close']):
-                return False
-            
-            # Last candle should break above the pullback candle's high
-            if last_candle['high'] <= pullback_candle['high']:
-                return False
-            
-            # All criteria met, micro pullback confirmed
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error detecting micro pullback: {e}")
+        # Get the relevant candles
+        first = data.iloc[-3]
+        middle = data.iloc[-2]
+        last = data.iloc[-1]
+        
+        # First candle should be bullish (close > open)
+        if first['close'] <= first['open']:
             return False
+        
+        # Last candle should be bearish (close < open)
+        if last['close'] >= last['open']:
+            return False
+        
+        # Middle candle should have a small body
+        first_body = abs(first['close'] - first['open'])
+        middle_body = abs(middle['close'] - middle['open'])
+        
+        if middle_body > 0.3 * first_body:  # Middle body should be less than 30% of first body
+            return False
+        
+        # If doji is required, check that middle candle is a doji
+        if doji_required and not self.is_doji(data, -2):
+            return False
+        
+        # Check if last candle closes well into the first candle's body
+        first_midpoint = (first['open'] + first['close']) / 2
+        if last['close'] >= first_midpoint:
+            return False
+        
+        return True
     
-    def is_new_high_breakout(self, df):
+    def detect_three_white_soldiers(self, data):
         """
-        Detect a "First Candle to Make a New High" pattern.
-        
-        This pattern occurs when a stock makes a new high after 
-        a period of consolidation or pullback.
+        Detect a Three White Soldiers pattern (bullish continuation).
         
         Parameters:
         -----------
-        df: pandas.DataFrame
-            OHLCV data with at least 5-7 candles
+        data: pandas.DataFrame
+            OHLCV data with at least 3 candles
             
         Returns:
         --------
-        bool: True if a new high breakout pattern is detected
+        bool: True if the pattern is detected
         """
-        if df is None or len(df) < 6:
+        if len(data) < 3:
             return False
         
-        try:
-            # Make a copy to avoid modifying the original
-            data = df.copy()
-            
-            # Get the most recent 6 candles
-            recent_data = data.iloc[-6:]
-            
-            # Find the previous high in the lookback period (excluding most recent candle)
-            previous_high = recent_data.iloc[:-1]['high'].max()
-            
-            # Get the last candle
-            last_candle = recent_data.iloc[-1]
-            
-            # Last candle should be bullish
-            if not self.is_bullish_candle(last_candle['open'], last_candle['close']):
-                return False
-            
-            # Last candle should make a new high
-            if last_candle['high'] <= previous_high:
-                return False
-            
-            # Check for prior consolidation or pullback
-            # (at least 2-3 candles without making new highs)
-            prior_candles = recent_data.iloc[1:-1]  # Skip the first and last candles
-            
-            new_high_count = 0
-            prior_high = recent_data.iloc[0]['high']
-            
-            for i in range(len(prior_candles)):
-                if prior_candles['high'].iloc[i] > prior_high:
-                    new_high_count += 1
-                
-                prior_high = max(prior_high, prior_candles['high'].iloc[i])
-            
-            # Should have no more than 1 new high in the prior candles
-            # to confirm consolidation/pullback before breakout
-            if new_high_count > 1:
-                return False
-            
-            # Check if the volume on the breakout candle is higher
-            if 'volume' in recent_data.columns:
-                avg_volume = recent_data.iloc[:-1]['volume'].mean()
-                breakout_volume = last_candle['volume']
-                
-                # Breakout volume should be higher than average
-                if breakout_volume <= avg_volume:
-                    return False
-            
-            # All criteria met, new high breakout confirmed
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error detecting new high breakout: {e}")
+        # Get the three candles
+        candles = [data.iloc[-3], data.iloc[-2], data.iloc[-1]]
+        
+        # All three candles should be bullish
+        if not all(candle['close'] > candle['open'] for candle in candles):
             return False
+        
+        # Each candle should close higher than the previous
+        if not (candles[1]['close'] > candles[0]['close'] and candles[2]['close'] > candles[1]['close']):
+            return False
+        
+        # Each candle should open within the previous candle's body
+        if not (candles[1]['open'] > candles[0]['open'] and 
+                candles[1]['open'] < candles[0]['close'] and
+                candles[2]['open'] > candles[1]['open'] and
+                candles[2]['open'] < candles[1]['close']):
+            return False
+        
+        # Check for small upper shadows (less than 15% of body size)
+        for candle in candles:
+            body_size = candle['close'] - candle['open']
+            upper_shadow = candle['high'] - candle['close']
+            
+            if upper_shadow > 0.15 * body_size:
+                return False
+        
+        return True
     
-    # Compatibility methods to match method calls in trade_manager.py
-
+    def detect_three_black_crows(self, data):
+        """
+        Detect a Three Black Crows pattern (bearish continuation).
+        
+        Parameters:
+        -----------
+        data: pandas.DataFrame
+            OHLCV data with at least 3 candles
+            
+        Returns:
+        --------
+        bool: True if the pattern is detected
+        """
+        if len(data) < 3:
+            return False
+        
+        # Get the three candles
+        candles = [data.iloc[-3], data.iloc[-2], data.iloc[-1]]
+        
+        # All three candles should be bearish
+        if not all(candle['close'] < candle['open'] for candle in candles):
+            return False
+        
+        # Each candle should close lower than the previous
+        if not (candles[1]['close'] < candles[0]['close'] and candles[2]['close'] < candles[1]['close']):
+            return False
+        
+        # Each candle should open within the previous candle's body
+        if not (candles[1]['open'] < candles[0]['open'] and 
+                candles[1]['open'] > candles[0]['close'] and
+                candles[2]['open'] < candles[1]['open'] and
+                candles[2]['open'] > candles[1]['close']):
+            return False
+        
+        # Check for small lower shadows (less than 15% of body size)
+        for candle in candles:
+            body_size = abs(candle['close'] - candle['open'])
+            lower_shadow = abs(min(candle['open'], candle['close']) - candle['low'])
+            
+            if lower_shadow > 0.15 * body_size:
+                return False
+        
+        return True
+    
+    def detect_rising_three(self, data):
+        """
+        Detect a Rising Three pattern (bullish continuation).
+        
+        Parameters:
+        -----------
+        data: pandas.DataFrame
+            OHLCV data with at least 5 candles
+            
+        Returns:
+        --------
+        bool: True if the pattern is detected
+        """
+        if len(data) < 5:
+            return False
+        
+        # Get the relevant candles
+        first = data.iloc[-5]
+        middle_three = [data.iloc[-4], data.iloc[-3], data.iloc[-2]]
+        last = data.iloc[-1]
+        
+        # First candle should be bullish
+        if first['close'] <= first['open']:
+            return False
+        
+        # Last candle should be bullish
+        if last['close'] <= last['open']:
+            return False
+        
+        # Middle candles should be bearish
+        if not all(candle['close'] < candle['open'] for candle in middle_three):
+            return False
+        
+        # Middle candles should be contained within the range of the first candle
+        for candle in middle_three:
+            if candle['high'] > first['high'] or candle['low'] < first['low']:
+                return False
+        
+        # Last candle should close above the first candle's close
+        if last['close'] <= first['close']:
+            return False
+        
+        return True
+    
+    def detect_falling_three(self, data):
+        """
+        Detect a Falling Three pattern (bearish continuation).
+        
+        Parameters:
+        -----------
+        data: pandas.DataFrame
+            OHLCV data with at least 5 candles
+            
+        Returns:
+        --------
+        bool: True if the pattern is detected
+        """
+        if len(data) < 5:
+            return False
+        
+        # Get the relevant candles
+        first = data.iloc[-5]
+        middle_three = [data.iloc[-4], data.iloc[-3], data.iloc[-2]]
+        last = data.iloc[-1]
+        
+        # First candle should be bearish
+        if first['close'] >= first['open']:
+            return False
+        
+        # Last candle should be bearish
+        if last['close'] >= last['open']:
+            return False
+        
+        # Middle candles should be bullish
+        if not all(candle['close'] > candle['open'] for candle in middle_three):
+            return False
+        
+        # Middle candles should be contained within the range of the first candle
+        for candle in middle_three:
+            if candle['high'] > first['high'] or candle['low'] < first['low']:
+                return False
+        
+        # Last candle should close below the first candle's close
+        if last['close'] >= first['close']:
+            return False
+        
+        return True
+    
     def detect_entry_signal(self, df):
         """
-        Detect all potential entry signals in the price data.
+        Detect entry signals based on triple candlestick patterns.
         
-        This method checks for bull flag, micro pullback, and new high breakout patterns.
+        This is a replacement for the existing method to focus on triple patterns.
         
         Parameters:
         -----------
@@ -359,21 +439,35 @@ class CandlestickPatterns:
             
         Returns:
         --------
-        dict: Dictionary with entry signals and their corresponding patterns
+        dict: Dictionary with entry signals and their patterns
         """
         signals = {}
         
-        # Check for bull flag
-        if self.is_bull_flag(df):
-            signals['bull_flag'] = True
+        # Check for bullish patterns
+        if self.detect_morning_star(df, doji_required=False):
+            signals['morning_star'] = True
         
-        # Check for micro pullback
-        if self.is_micro_pullback(df):
-            signals['micro_pullback'] = True
+        if self.detect_morning_star(df, doji_required=True):
+            signals['morning_doji_star'] = True
         
-        # Check for new high breakout
-        if self.is_new_high_breakout(df):
-            signals['new_high_breakout'] = True
+        if self.detect_three_white_soldiers(df):
+            signals['three_white_soldiers'] = True
+        
+        if self.detect_rising_three(df):
+            signals['rising_three'] = True
+        
+        # Check for bearish patterns
+        if self.detect_evening_star(df, doji_required=False):
+            signals['evening_star'] = True
+        
+        if self.detect_evening_star(df, doji_required=True):
+            signals['evening_doji_star'] = True
+        
+        if self.detect_three_black_crows(df):
+            signals['three_black_crows'] = True
+        
+        if self.detect_falling_three(df):
+            signals['falling_three'] = True
         
         return signals
     
@@ -386,8 +480,8 @@ class CandlestickPatterns:
         df: pandas.DataFrame
             OHLCV data
         pattern: str
-            Detected pattern (bull_flag, micro_pullback, new_high_breakout)
-            
+            Detected pattern
+                
         Returns:
         --------
         float: Optimal entry price
@@ -397,24 +491,16 @@ class CandlestickPatterns:
         
         last_candle = df.iloc[-1]
         
+        # For bullish patterns, enter above the last candle's high
+        if pattern in ['morning_star', 'morning_doji_star', 'three_white_soldiers', 'rising_three']:
+            return last_candle['high'] * 1.001  # 0.1% above high
+        
+        # For bearish patterns, enter below the last candle's low
+        elif pattern in ['evening_star', 'evening_doji_star', 'three_black_crows', 'falling_three']:
+            return last_candle['low'] * 0.999  # 0.1% below low
+        
         # Default entry at current price
-        entry_price = last_candle['close']
-        
-        # For bull flag, entry is above the flag high
-        if pattern == 'bull_flag':
-            flag_high = df.iloc[-5:-1]['high'].max()
-            entry_price = max(last_candle['close'], flag_high)
-        
-        # For micro pullback, entry is above the pullback candle's high
-        elif pattern == 'micro_pullback':
-            pullback_candle = df.iloc[-2]
-            entry_price = max(last_candle['close'], pullback_candle['high'])
-        
-        # For new high breakout, entry is the breakout price
-        elif pattern == 'new_high_breakout':
-            entry_price = last_candle['close']
-        
-        return entry_price
+        return last_candle['close']
     
     def get_optimal_stop_price(self, df, pattern):
         """
@@ -425,8 +511,8 @@ class CandlestickPatterns:
         df: pandas.DataFrame
             OHLCV data
         pattern: str
-            Detected pattern (bull_flag, micro_pullback, new_high_breakout)
-            
+            Detected pattern
+                
         Returns:
         --------
         float: Optimal stop loss price
@@ -434,104 +520,77 @@ class CandlestickPatterns:
         if df is None or df.empty:
             return None
         
-        last_candle = df.iloc[-1]
+        # For Morning Star patterns
+        if pattern == 'morning_star' or pattern == 'morning_doji_star':
+            # Use low of the middle candle as stop
+            return df.iloc[-2]['low'] * 0.999  # 0.1% below middle candle low
+        
+        # For Three White Soldiers
+        elif pattern == 'three_white_soldiers':
+            # Use low of the last candle as stop
+            return df.iloc[-1]['low'] * 0.999  # 0.1% below last candle low
+        
+        # For Rising Three
+        elif pattern == 'rising_three':
+            # Use low of the entire pattern as stop
+            pattern_low = df.iloc[-5:]['low'].min()
+            return pattern_low * 0.999  # 0.1% below pattern low
+        
+        # For Evening Star patterns
+        elif pattern == 'evening_star' or pattern == 'evening_doji_star':
+            # Use high of the middle candle as stop
+            return df.iloc[-2]['high'] * 1.001  # 0.1% above middle candle high
+        
+        # For Three Black Crows
+        elif pattern == 'three_black_crows':
+            # Use high of the last candle as stop
+            return df.iloc[-1]['high'] * 1.001  # 0.1% above last candle high
+        
+        # For Falling Three
+        elif pattern == 'falling_three':
+            # Use high of the entire pattern as stop
+            pattern_high = df.iloc[-5:]['high'].max()
+            return pattern_high * 1.001  # 0.1% above pattern high
+        
+        # Default stop based on last candle
         entry_price = self.get_optimal_entry_price(df, pattern)
-        
-        # Default stop below the last candle's low
-        stop_price = last_candle['low']
-        
-        # For bull flag, stop below the flag low
-        if pattern == 'bull_flag':
-            flag_low = df.iloc[-5:-1]['low'].min()
-            stop_price = flag_low
-        
-        # For micro pullback, stop below the pullback candle's low
-        elif pattern == 'micro_pullback':
-            pullback_candle = df.iloc[-2]
-            stop_price = pullback_candle['low']
-        
-        # For new high breakout, stop below the last candle's low
-        elif pattern == 'new_high_breakout':
-            stop_price = last_candle['low']
-        
-        # Ensure stop is not too tight (at least 2% below entry)
-        min_stop = entry_price * 0.98
-        if stop_price > min_stop:
-            stop_price = min_stop
-        
-        return stop_price
+        if pattern in ['morning_star', 'morning_doji_star', 'three_white_soldiers', 'rising_three']:
+            return entry_price * 0.98  # 2% below entry for bullish patterns
+        else:
+            return entry_price * 1.02  # 2% above entry for bearish patterns
     
-    def get_optimal_target_price(self, entry_price, stop_price, profit_loss_ratio=2.0):
+    def get_optimal_target_price(self, df, pattern):
         """
-        Get the optimal profit target price based on risk-reward ratio.
+        Get the optimal target price based on detected pattern and risk-reward ratio.
         
         Parameters:
         -----------
-        entry_price: float
-            Entry price
-        stop_price: float
-            Stop loss price
-        profit_loss_ratio: float
-            Desired profit-to-loss ratio
+        df: pandas.DataFrame
+            OHLCV data
+        pattern: str
+            Detected pattern
             
         Returns:
         --------
         float: Optimal target price
         """
+        if df is None or df.empty:
+            return None
+        
+        # Get entry and stop prices
+        entry_price = self.get_optimal_entry_price(df, pattern)
+        stop_price = self.get_optimal_stop_price(df, pattern)
+        
         if entry_price is None or stop_price is None:
             return None
         
-        # Calculate risk per share
-        risk = entry_price - stop_price
+        # Calculate risk
+        risk = abs(entry_price - stop_price)
         
-        # Calculate target based on risk-reward ratio
-        target_price = entry_price + (risk * profit_loss_ratio)
-        
-        return target_price
-    
-    # Existing methods
-
-    def get_optimal_entry(self, price_history):
-        """
-        Return the optimal entry price for the current pattern.
-        Maps to get_optimal_entry_price for compatibility.
-        """
-        # First determine the pattern
-        signals = self.detect_entry_signal(price_history)
-        
-        if 'bull_flag' in signals:
-            pattern = 'bull_flag'
-        elif 'new_high_breakout' in signals:
-            pattern = 'new_high_breakout'
-        elif 'micro_pullback' in signals:
-            pattern = 'micro_pullback'
+        # Use 2:1 reward-to-risk ratio
+        if pattern in ['morning_star', 'morning_doji_star', 'three_white_soldiers', 'rising_three']:
+            # For bullish patterns
+            return entry_price + (risk * 2)
         else:
-            return price_history.iloc[-1]['close'] if not price_history.empty else None
-        
-        return self.get_optimal_entry_price(price_history, pattern)
-    
-    def get_optimal_stop_loss(self, price_history):
-        """
-        Return the optimal stop loss price for the current pattern.
-        Maps to get_optimal_stop_price for compatibility.
-        """
-        # First determine the pattern
-        signals = self.detect_entry_signal(price_history)
-        
-        if 'bull_flag' in signals:
-            pattern = 'bull_flag'
-        elif 'new_high_breakout' in signals:
-            pattern = 'new_high_breakout'
-        elif 'micro_pullback' in signals:
-            pattern = 'micro_pullback'
-        else:
-            return price_history.iloc[-1]['low'] if not price_history.empty else None
-        
-        return self.get_optimal_stop_price(price_history, pattern)
-    
-    def get_optimal_target(self, entry, stop, profit_loss_ratio=2.0):
-        """
-        Return the optimal profit target price.
-        Maps to get_optimal_target_price for compatibility.
-        """
-        return self.get_optimal_target_price(entry, stop, profit_loss_ratio)
+            # For bearish patterns
+            return entry_price - (risk * 2)

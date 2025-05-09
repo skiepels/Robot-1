@@ -1,0 +1,245 @@
+{
+  "summary": {
+    "start_date": "2025-05-01",
+    "end_date": "2025-05-05",
+    "initial_capital": 10000.0,
+    "final_capital": 10022.176859800002,
+    "total_return_pct": 0.22176859800002724,
+    "annualized_return_pct": 20.451785398546953,
+    "sharpe_ratio": 2.4604825449635648,
+    "max_drawdown_pct": 0.5738080873880022,
+    "total_trades": 13,
+    "winning_trades": 7,
+    "losing_trades": 6,
+    "win_rate": 0.5384615384615384,
+    "total_profit": 226.51814810000045,
+    "total_loss": 204.34128829999804,
+    "net_pnl": 22.176859800002397,
+    "profit_factor": 1.1085285307952255
+  },
+  "daily_results": {
+    "2025-05-05": {
+      "symbol": "GPUS",
+      "trades_taken": 4,
+      "winning_trades": 3,
+      "losing_trades": 1,
+      "win_rate": 0.75,
+      "total_profit": 84.72339810000024,
+      "total_loss": -25.84404999999985,
+      "net_pnl": 58.879348100000385,
+      "equity": 10058.879348100001,
+      "open": 3.17,
+      "high": 9.08,
+      "low": 2.9401,
+      "close": 7.68,
+      "volume": 237930000.0,
+      "change_pct": 454.51263537906135
+    },
+    "2025-05-07": {
+      "symbol": "GPUS",
+      "trades_taken": 5,
+      "winning_trades": 3,
+      "losing_trades": 2,
+      "win_rate": 0.6,
+      "total_profit": 42.75635000000047,
+      "total_loss": -100.47501319999881,
+      "net_pnl": -57.71866319999834,
+      "equity": 10001.160684900002,
+      "open": 5.33,
+      "high": 8.56,
+      "low": 5.19,
+      "close": 6.135,
+      "volume": 76231707.0,
+      "change_pct": 31.93548387096772
+    },
+    "2025-05-08": {
+      "symbol": "GPUS",
+      "trades_taken": 4,
+      "winning_trades": 1,
+      "losing_trades": 3,
+      "win_rate": 0.25,
+      "total_profit": 99.03839999999974,
+      "total_loss": -78.02222509999939,
+      "net_pnl": 21.01617490000035,
+      "equity": 10022.176859800002,
+      "open": 7.68,
+      "high": 9.94,
+      "low": 7.35,
+      "close": 7.99,
+      "volume": 38269298.0,
+      "change_pct": 30.23634881825592
+    }
+  },
+  "equity_curve": [
+    {
+      "date": "2025-05-05",
+      "equity": 10058.879348100001
+    },
+    {
+      "date": "2025-05-07",
+      "equity": 10001.160684900002
+    },
+    {
+      "date": "2025-05-08",
+      "equity": 10022.176859800002
+    }
+  ],
+  "trade_history": [
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-05 11:19:00",
+      "exit_time": "2025-05-05 11:22:00",
+      "entry_price": 6.9168099,
+      "exit_price": 7.31,
+      "shares": 81,
+      "pnl": 31.848398099999997,
+      "exit_reason": "macd_crossover",
+      "pattern": "morning_star",
+      "duration": 3.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-05 11:47:00",
+      "exit_time": "2025-05-05 11:58:00",
+      "entry_price": 6.356349999999999,
+      "exit_price": 6.66,
+      "shares": 160,
+      "pnl": 48.584000000000174,
+      "exit_reason": "macd_crossover",
+      "pattern": "morning_star",
+      "duration": 11.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-05 14:33:00",
+      "exit_time": "2025-05-05 14:34:00",
+      "entry_price": 8.45845,
+      "exit_price": 8.285,
+      "shares": 149,
+      "pnl": -25.84404999999985,
+      "exit_reason": "macd_crossover",
+      "pattern": "morning_star",
+      "duration": 1.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-05 15:42:00",
+      "exit_time": "2025-05-05 15:43:00",
+      "entry_price": 8.6086,
+      "exit_price": 8.6699,
+      "shares": 70,
+      "pnl": 4.291000000000071,
+      "exit_reason": "macd_crossover",
+      "pattern": "morning_star",
+      "duration": 1.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-07 10:08:00",
+      "exit_time": "2025-05-07 10:22:00",
+      "entry_price": 7.547539999999999,
+      "exit_price": 7.77,
+      "shares": 115,
+      "pnl": 25.582900000000087,
+      "exit_reason": "macd_crossover",
+      "pattern": "morning_star",
+      "duration": 14.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-07 10:26:00",
+      "exit_time": "2025-05-07 10:29:00",
+      "entry_price": 7.977969999999999,
+      "exit_price": 8.0099,
+      "shares": 70,
+      "pnl": 2.235100000000063,
+      "exit_reason": "macd_crossover",
+      "pattern": "morning_star",
+      "duration": 3.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-07 12:51:00",
+      "exit_time": "2025-05-07 12:54:00",
+      "entry_price": 7.537529999999999,
+      "exit_price": 7.36263,
+      "shares": 288,
+      "pnl": -50.37119999999976,
+      "exit_reason": "stop_loss",
+      "pattern": "morning_star",
+      "duration": 3.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-07 14:04:00",
+      "exit_time": "2025-05-07 14:05:00",
+      "entry_price": 7.187179999999999,
+      "exit_price": 7.092999900000001,
+      "shares": 532,
+      "pnl": -50.10381319999905,
+      "exit_reason": "stop_loss",
+      "pattern": "morning_star",
+      "duration": 1.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-07 14:16:00",
+      "exit_time": "2025-05-07 14:18:00",
+      "entry_price": 6.956949999999999,
+      "exit_price": 7.0,
+      "shares": 347,
+      "pnl": 14.93835000000032,
+      "exit_reason": "macd_crossover",
+      "pattern": "morning_star",
+      "duration": 2.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-08 11:26:00",
+      "exit_time": "2025-05-08 11:27:00",
+      "entry_price": 7.788380599999999,
+      "exit_price": 7.64235,
+      "shares": 342,
+      "pnl": -49.942465199999546,
+      "exit_reason": "stop_loss",
+      "pattern": "morning_star",
+      "duration": 1.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-08 14:00:00",
+      "exit_time": "2025-05-08 14:07:00",
+      "entry_price": 7.9792713,
+      "exit_price": 7.93,
+      "shares": 423,
+      "pnl": -20.841759900000007,
+      "exit_reason": "macd_crossover",
+      "pattern": "morning_star",
+      "duration": 7.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-08 15:04:00",
+      "exit_time": "2025-05-08 15:15:00",
+      "entry_price": 8.26826,
+      "exit_price": 8.680919999999999,
+      "shares": 240,
+      "pnl": 99.03839999999974,
+      "exit_reason": "target_reached",
+      "pattern": "morning_star",
+      "duration": 11.0
+    },
+    {
+      "symbol": "GPUS",
+      "entry_time": "2025-05-08 15:55:00",
+      "exit_time": "2025-05-08 15:56:00",
+      "entry_price": 8.108099999999999,
+      "exit_price": 8.0696,
+      "shares": 188,
+      "pnl": -7.237999999999829,
+      "exit_reason": "end_of_day",
+      "pattern": "morning_star",
+      "duration": 1.0
+    }
+  ]
+}
