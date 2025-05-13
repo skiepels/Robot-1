@@ -82,7 +82,7 @@ class NewsDataProvider:
     
     def get_stock_news(self, symbol, days=1, max_items=10):
         """
-        Get recent news for a specific stock.
+        Get recent news for a specific stock using IBKR news.
         
         Parameters:
         -----------
@@ -106,16 +106,35 @@ class NewsDataProvider:
             return self.cached_news[cache_key]
         
         try:
-            # In production, this would connect to a news API
-            # For demonstration, we'll use a simulated news feed
-            news_items = self._simulate_news_feed(symbol, days)
+            # Use IBKR connector to get news
+            from src.data.ib_connector import IBConnector
+            
+            ib_connector = IBConnector()
+            if not ib_connector.connect():
+                logger.error("Failed to connect to IBKR for news")
+                return []
+            
+            # Get historical news
+            news_articles = ib_connector.get_historical_news(symbol, days=days, max_items=max_items)
+            
+            # Convert to NewsItem objects
+            news_items = []
+            for article in news_articles:
+                try:
+                    news_item = NewsItem(
+                        headline=article.headline,
+                        source=article.providerCode,
+                        url="",  # IBKR doesn't provide URLs
+                        date=article.time,  # IBKR returns datetime object
+                        summary=article.summary if hasattr(article, 'summary') else None
+                    )
+                    news_items.append(news_item)
+                except Exception as e:
+                    logger.warning(f"Error processing news article: {e}")
+                    continue
             
             # Sort by date (newest first)
             news_items.sort(key=lambda x: x.date, reverse=True)
-            
-            # Limit to the requested number of items
-            if max_items > 0:
-                news_items = news_items[:max_items]
             
             # Score each news item for potential impact
             for item in news_items:
@@ -124,12 +143,18 @@ class NewsDataProvider:
             # Cache the results
             self._cache_data(cache_key, news_items, expiry_seconds=300)  # 5 min expiry
             
+            # Disconnect
+            ib_connector.disconnect()
+            
             logger.info(f"Fetched {len(news_items)} news items for {symbol}")
             return news_items
             
         except Exception as e:
             logger.error(f"Error fetching news for {symbol}: {e}")
-            return []
+            
+            # Fall back to simulation if IBKR news fails
+            logger.warning("Falling back to simulated news")
+            return self._simulate_news_feed(symbol, days)
     
     def get_market_news(self, days=1, max_items=20):
         """
@@ -155,22 +180,23 @@ class NewsDataProvider:
             return self.cached_news[cache_key]
         
         try:
-            # In production, this would connect to a news API
-            # For demonstration, we'll use a simulated news feed
-            news_items = self._simulate_market_news_feed(days)
+            # For market news, we might want to look at specific market-wide tickers
+            market_symbols = ['SPY', 'QQQ', 'IWM']  # S&P 500, Nasdaq, Russell 2000
+            all_news = []
             
-            # Sort by date (newest first)
-            news_items.sort(key=lambda x: x.date, reverse=True)
+            for symbol in market_symbols:
+                news_items = self.get_stock_news(symbol, days=days, max_items=max_items//len(market_symbols))
+                all_news.extend(news_items)
             
-            # Limit to the requested number of items
-            if max_items > 0:
-                news_items = news_items[:max_items]
+            # Sort by date and limit to max_items
+            all_news.sort(key=lambda x: x.date, reverse=True)
+            all_news = all_news[:max_items]
             
             # Cache the results
-            self._cache_data(cache_key, news_items, expiry_seconds=900)  # 15 min expiry
+            self._cache_data(cache_key, all_news, expiry_seconds=900)  # 15 min expiry
             
-            logger.info(f"Fetched {len(news_items)} general market news items")
-            return news_items
+            logger.info(f"Fetched {len(all_news)} general market news items")
+            return all_news
             
         except Exception as e:
             logger.error(f"Error fetching market news: {e}")
@@ -252,55 +278,6 @@ class NewsDataProvider:
             
             # Create a dummy URL
             url = f"https://example.com/news/{symbol.lower()}/{i}"
-            
-            # Create the news item
-            news_item = NewsItem(headline, source, url, date)
-            news_items.append(news_item)
-        
-        return news_items
-    
-    def _simulate_market_news_feed(self, days):
-        """
-        Simulate a general market news feed.
-        This is used for demonstration when a real news API is not available.
-        """
-        # Generate some plausible market news items
-        news_templates = [
-            "Markets React to Fed Decision on Interest Rates",
-            "S&P 500 Reaches New All-Time High",
-            "Tech Stocks Lead Market Rally",
-            "Inflation Data Impacts Market Sentiment",
-            "Global Economic Outlook Affects Trading",
-            "Market Volatility Increases as Earnings Season Begins",
-            "Investors Respond to Latest Economic Indicators",
-            "Market Trends: Sector Rotation Observed",
-            "Futures Point to Mixed Open After Previous Session",
-            "Treasury Yields Affect Market Dynamics"
-        ]
-        
-        sources = ["Reuters", "Bloomberg", "CNBC", "Yahoo Finance", "MarketWatch"]
-        
-        # Generate a random number of news items (5-10)
-        import random
-        num_items = random.randint(5, 10)
-        
-        news_items = []
-        now = datetime.now()
-        
-        for i in range(num_items):
-            # Pick a random template and source
-            template = random.choice(news_templates)
-            source = random.choice(sources)
-            
-            # Generate a headline
-            headline = template
-            
-            # Generate a random date within the specified days
-            random_hours = random.randint(0, days * 24)
-            date = now - timedelta(hours=random_hours)
-            
-            # Create a dummy URL
-            url = f"https://example.com/market-news/{i}"
             
             # Create the news item
             news_item = NewsItem(headline, source, url, date)

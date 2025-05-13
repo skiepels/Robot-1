@@ -73,27 +73,31 @@ class Stock:
     def update_price(self, current_price, high_price=None, low_price=None, open_price=None):
         """Update current price and related fields"""
         self.current_price = current_price
-        
+    
         if high_price is not None:
             self.high_price = high_price
         elif current_price > self.high_price:
             self.high_price = current_price
-            
+        
         if low_price is not None:
             self.low_price = low_price
         elif self.low_price == 0 or current_price < self.low_price:
             self.low_price = current_price
-            
+        
         if open_price is not None:
             self.open_price = open_price
-            
-        # Update change calculations
+        
+    # Update change calculations
         if self.previous_close > 0:
             self.change_today = self.current_price - self.previous_close
             self.change_today_percent = (self.change_today / self.previous_close) * 100
-            
-        if self.open_price > 0 and self.previous_close > 0:
+        
+    # Gap is specifically the open vs previous close
+        if  self.open_price > 0 and self.previous_close > 0:
             self.gap_percent = (self.open_price - self.previous_close) / self.previous_close * 100
+    
+    # Add day change percent (current price vs previous close)
+        self.day_change_percent = self.change_today_percent
     
     def update_volume(self, current_volume, avg_volume_50d=None):
         """Update volume data"""
@@ -149,25 +153,45 @@ class Stock:
         """Set historical price data"""
         self.price_history = df
     
-    def meets_criteria(self, min_price=1.0, max_price=20.0, min_gap_pct=10.0, 
-                      min_rel_volume=5.0, max_float=10_000_000):
-        """
-        Check if stock meets Ross Cameron's criteria:
-        1. Price between $1-$20
-        2. Gapping up at least 10%
-        3. Relative volume at least 5x
-        4. Float under 10 million shares
-        5. Has news (checked separately)
-        """
-        price_ok = min_price <= self.current_price <= max_price
-        gap_ok = self.gap_percent >= min_gap_pct
-        volume_ok = self.relative_volume >= min_rel_volume
-        float_ok = self.shares_float <= max_float
-        
-        all_criteria_met = price_ok and gap_ok and volume_ok and float_ok
-        
-        return all_criteria_met
+    def meets_criteria(self):
     
+        from src.conditions.condition_checker import ConditionChecker
+    
+    # Create condition checker instance
+        checker = ConditionChecker()
+    
+    # Prepare stock data for condition checking
+        stock_data = {
+        'current_price': self.current_price,
+        'day_change_percent': self.day_change_percent,  # Now using correct field
+        'relative_volume': self.relative_volume,
+        'has_news': self.has_news,
+        'shares_float': self.shares_float
+    }
+    
+    # Check all conditions
+        all_conditions_met, results = checker.check_all_conditions(stock_data)
+    
+        return all_conditions_met, results
+    def get_condition_status(self):
+  
+        from src.conditions.condition_checker import ConditionChecker
+    
+    # Create condition checker instance
+        checker = ConditionChecker()
+    
+    # Prepare stock data
+        stock_data = {
+        'current_price': self.current_price,
+        'day_change_percent': self.day_change_percent,
+        'relative_volume': self.relative_volume,
+        'has_news': self.has_news,
+        'shares_float': self.shares_float
+    }
+    
+    # Get detailed status
+        return checker.get_condition_status(stock_data)
+
     def __str__(self):
         """String representation of the stock"""
         return (f"{self.symbol} - ${self.current_price:.2f} ({self.change_today_percent:.2f}%) | "

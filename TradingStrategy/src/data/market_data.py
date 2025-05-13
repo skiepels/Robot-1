@@ -426,24 +426,38 @@ class MarketDataProvider:
             logger.warning(f"Error updating pre-market data for {stock.symbol}: {e}")
     
     def _update_volume_data(self, stock):
-        """Update volume data for a stock"""
+        """Update volume data for a stock with real calculations"""
         try:
-            # For simulation purposes, we'll set a random relative volume
-            # In a real implementation, you would calculate this from historical data
+            # Get historical data for volume calculation
+            ticker = yf.Ticker(stock.symbol)
             
-            # Simulate a relative volume between 0.5 and 10
-            import random
-            rel_volume = random.uniform(0.5, 10)
-            stock.relative_volume = rel_volume
+            # Get 50 days of historical data
+            hist_data = ticker.history(period="50d")
             
-            # Set average volume based on current volume and relative volume
-            if stock.relative_volume > 0:
-                stock.avg_volume_50d = stock.current_volume / stock.relative_volume
+            if not hist_data.empty and 'Volume' in hist_data.columns:
+                # Calculate 50-day average volume
+                stock.avg_volume_50d = hist_data['Volume'].mean()
                 
-            logger.debug(f"Simulated volume data for {stock.symbol}: relative volume {stock.relative_volume:.2f}x")
+                # Get current volume (most recent trading day)
+                stock.current_volume = hist_data['Volume'].iloc[-1]
+                
+                # Calculate relative volume
+                if stock.avg_volume_50d > 0:
+                    stock.relative_volume = stock.current_volume / stock.avg_volume_50d
+                else:
+                    stock.relative_volume = 0.0
+                    
+                logger.debug(f"Updated volume data for {stock.symbol}: " +
+                        f"current volume: {stock.current_volume:,}, " +
+                        f"50-day avg: {stock.avg_volume_50d:,.0f}, " +
+                        f"relative volume: {stock.relative_volume:.2f}x")
+            else:
+                logger.warning(f"No volume data available for {stock.symbol}")
+                stock.relative_volume = 0.0
                 
         except Exception as e:
             logger.warning(f"Error updating volume data for {stock.symbol}: {e}")
+            stock.relative_volume = 0.0
     
     def _update_float_data(self, stock):
         """Update float data for a stock"""

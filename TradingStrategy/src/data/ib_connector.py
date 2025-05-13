@@ -330,6 +330,69 @@ class IBConnector:
             logger.error(f"Error getting contract details for {symbol}: {str(e)}")
             return {}
     
+    def get_news_providers(self):
+        """Get available news providers"""
+        if not self.ensure_connection():
+            return []
+            
+        try:
+            providers = self.ib.reqNewsProviders()
+            return providers
+        except Exception as e:
+            logger.error(f"Error getting news providers: {e}")
+            return []
+
+    def get_historical_news(self, symbol, days=1, max_items=10):
+        """
+        Get historical news for a symbol
+        
+        Parameters:
+        -----------
+        symbol: str
+            Stock symbol
+        days: int
+            Number of days to look back
+        max_items: int
+            Maximum number of news items
+            
+        Returns:
+        --------
+        list: News articles
+        """
+        if not self.ensure_connection():
+            return []
+            
+        try:
+            # Create contract
+            contract = self.create_stock_contract(symbol)
+            
+            # Get contract details to get conId
+            details = self.ib.reqContractDetails(contract)
+            if not details:
+                logger.warning(f"No contract details found for {symbol}")
+                return []
+                
+            con_id = details[0].contract.conId
+            
+            # Calculate date range
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
+            
+            # Request historical news
+            news = self.ib.reqHistoricalNews(
+                conId=con_id,
+                providerCodes="BRFG+DJNL",  # Briefing.com + Dow Jones
+                startDateTime=start_date.strftime("%Y%m%d %H:%M:%S"),
+                endDateTime=end_date.strftime("%Y%m%d %H:%M:%S"),
+                totalResults=max_items
+            )
+            
+            return news
+            
+        except Exception as e:
+            logger.error(f"Error getting historical news for {symbol}: {e}")
+            return []
+    
     def ensure_connection(self):
         """Ensure connection to IB is active, reconnect if necessary."""
         if not self.connected or not self.ib.isConnected():
