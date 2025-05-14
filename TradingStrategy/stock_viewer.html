@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5 Conditions Scanner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .condition-met {
+            background-color: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        }
+        .condition-not-met {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .condition-cell {
+            display: flex;
+            flex-direction: column;
+        }
+        .condition-value {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+        .all-conditions-met {
+            font-weight: bold;
+        }
+        .refresh-info {
+            font-size: 0.85em;
+            font-style: italic;
+        }
+        .sortable {
+            cursor: pointer;
+        }
+        .sortable:hover {
+            background-color: #f1f1f1;
+        }
+        .sortable::after {
+            content: "↕";
+            margin-left: 5px;
+            opacity: 0.5;
+        }
+        .sort-asc::after {
+            content: "↑";
+            opacity: 1;
+        }
+        .sort-desc::after {
+            content: "↓";
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-4">
+        <header class="mb-3">
+            <h1>Ross Cameron's 5 Conditions Scanner</h1>
+            <p class="refresh-info">Last updated: <span id="lastUpdated">Loading...</span> 
+               <button id="refreshBtn" class="btn btn-sm btn-outline-primary ms-3">Refresh</button>
+            </p>
+        </header>
+        
+        <div class="mb-3">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="filterQualified" checked>
+                <label class="form-check-label" for="filterQualified">Only show stocks meeting all conditions</label>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="conditionsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th class="sortable" data-sort="symbol">Symbol</th>
+                        <th class="sortable" data-sort="price">Price ($2-$20)</th>
+                        <th class="sortable" data-sort="gap">Gap Up (>10%)</th>
+                        <th class="sortable" data-sort="volume">Rel. Vol. (>5x)</th>
+                        <th class="sortable" data-sort="news">News</th>
+                        <th class="sortable" data-sort="float">Float (<10M)</th>
+                        <th class="sortable" data-sort="status">Status</th>
+                        <th class="sortable" data-sort="current_price">Current Price</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="stocksTableBody">
+                    <tr>
+                        <td colspan="9" class="text-center">Loading data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cache DOM elements
+            const tableBody = document.getElementById('stocksTableBody');
+            const lastUpdatedSpan = document.getElementById('lastUpdated');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const filterQualifiedCheckbox = document.getElementById('filterQualified');
+            const table = document.getElementById('conditionsTable');
+            
+            // Stock data
+            let stocksData = [];
+            let currentSort = { column: 'symbol', direction: 'asc' };
+            
+            // Load data
+            loadStockData();
+            
+            // Add event listeners
+            refreshBtn.addEventListener('click', loadStockData);
+            filterQualifiedCheckbox.addEventListener('change', renderTable);
+            
+            // Add event listeners for sortable columns
+            document.querySelectorAll('.sortable').forEach(header => {
+                header.addEventListener('click', function() {
+                    const column = this.getAttribute('data-sort');
+                    if (currentSort.column === column) {
+                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort.column = column;
+                        currentSort.direction = 'asc';
+                    }
+                    
+                    // Update UI
+                    document.querySelectorAll('.sortable').forEach(el => {
+                        el.classList.remove('sort-asc', 'sort-desc');
+                    });
+                    
+                    this.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                    
+                    // Re-render table
+                    renderTable();
+                });
+            });
+            
+            // Auto-refresh every 60 seconds
+            setInterval(loadStockData, 60000);
+            
+            function loadStockData() {
+                // Show loading indicator
+                tableBody.innerHTML = `<tr><td colspan="9" class="text-center">Loading data...</td></tr>`;
+                refreshBtn.disabled = true;
+                
+                // Fetch data from JSON file
+                fetch('stock_conditions.json?' + new Date().getTime())  // Adding timestamp to prevent caching
+                    .then(response => response.json())
+                    .then(data => {
+                        stocksData = data.stocks;
+                        lastUpdatedSpan.textContent = data.last_updated || new Date().toLocaleString();
+                        renderTable();
+                        refreshBtn.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Error loading stock data:', error);
+                        tableBody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">
+                            Error loading data. Please try again.</td></tr>`;
+                        refreshBtn.disabled = false;
+                    });
+            }
+            
+            function renderTable() {
+                // Clear table
+                tableBody.innerHTML = '';
+                
+                // Filter data if needed
+                let filteredData = stocksData;
+                if (filterQualifiedCheckbox.checked) {
+                    filteredData = stocksData.filter(stock => stock.all_conditions_met);
+                }
+                
+                // Sort data
+                filteredData.sort((a, b) => {
+                    let valueA, valueB;
+                    
+                    // Determine values based on sort column
+                    switch (currentSort.column) {
+                        case 'symbol':
+                            valueA = a.symbol;
+                            valueB = b.symbol;
+                            break;
+                        case 'price':
+                            valueA = a.conditions.price.met;
+                            valueB = b.conditions.price.met;
+                            break;
+                        case 'gap':
+                            valueA = a.conditions.percent_up.met;
+                            valueB = b.conditions.percent_up.met;
+                            break;
+                        case 'volume':
+                            valueA = a.conditions.volume.met;
+                            valueB = b.conditions.volume.met;
+                            break;
+                        case 'news':
+                            valueA = a.conditions.news.met;
+                            valueB = b.conditions.news.met;
+                            break;
+                        case 'float':
+                            valueA = a.conditions.float.met;
+                            valueB = b.conditions.float.met;
+                            break;
+                        case 'status':
+                            valueA = a.all_conditions_met;
+                            valueB = b.all_conditions_met;
+                            break;
+                        case 'current_price':
+                            valueA = parseFloat(a.current_price.replace('$', ''));
+                            valueB = parseFloat(b.current_price.replace('$', ''));
+                            break;
+                        default:
+                            valueA = a.symbol;
+                            valueB = b.symbol;
+                    }
+                    
+                    // Handle sorting direction
+                    if (currentSort.direction === 'asc') {
+                        return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+                    } else {
+                        return valueA > valueB ? -1 : valueA < valueB ? 1 : 0;
+                    }
+                });
+                
+                // Check if we have data
+                if (filteredData.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="9" class="text-center">
+                        No stocks found matching criteria</td></tr>`;
+                    return;
+                }
+                
+                // Render rows
+                filteredData.forEach(stock => {
+                    const row = document.createElement('tr');
+                    
+                    // Highlight rows where all conditions are met
+                    if (stock.all_conditions_met) {
+                        row.classList.add('table-success');
+                    }
+                    
+                    // Symbol
+                    row.innerHTML = `<td>${stock.symbol}</td>`;
+                    
+                    // Price condition
+                    row.innerHTML += createConditionCell(
+                        stock.conditions.price.met,
+                        stock.conditions.price.value
+                    );
+                    
+                    // Gap condition
+                    row.innerHTML += createConditionCell(
+                        stock.conditions.percent_up.met,
+                        stock.conditions.percent_up.value
+                    );
+                    
+                    // Volume condition
+                    row.innerHTML += createConditionCell(
+                        stock.conditions.volume.met,
+                        stock.conditions.volume.value
+                    );
+                    
+                    // News condition
+                    row.innerHTML += createConditionCell(
+                        stock.conditions.news.met,
+                        stock.conditions.news.value
+                    );
+                    
+                    // Float condition
+                    row.innerHTML += createConditionCell(
+                        stock.conditions.float.met,
+                        stock.conditions.float.value
+                    );
+                    
+                    // Status
+                    row.innerHTML += `<td class="${stock.all_conditions_met ? 'condition-met' : 'condition-not-met'} all-conditions-met">
+                        ${stock.all_conditions_met ? 'All Met' : 'Not All Met'}
+                    </td>`;
+                    
+                    // Current price
+                    row.innerHTML += `<td>${stock.current_price}</td>`;
+                    
+                    // Notes
+                    row.innerHTML += `<td>${stock.notes || ''}</td>`;
+                    
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            function createConditionCell(isConditionMet, value) {
+                return `<td class="${isConditionMet ? 'condition-met' : 'condition-not-met'}">
+                    <div class="condition-cell">
+                        ${isConditionMet ? 'Yes' : 'No'}
+                        <span class="condition-value">${value}</span>
+                    </div>
+                </td>`;
+            }
+        });
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
