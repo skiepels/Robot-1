@@ -10,6 +10,7 @@ This script scans stocks and checks if they meet Ross Cameron's 5 trading condit
 5. Float under 10 million shares
 
 Results are saved to a CSV/JSON file for easy viewing.
+Config.json is also automatically updated with stocks meeting all conditions.
 """
 
 import os
@@ -55,6 +56,7 @@ class StockConditionScanner:
             self.output_format = config.get('output_format', 'json')
             self.output_file = config.get('output_file', 'stock_conditions.json')
             self.api_keys = config.get('api_keys', {})
+            self.config_file = config_file
             
             logger.info(f"Loaded configuration with {len(self.watchlist)} stocks in watchlist")
         except Exception as e:
@@ -69,6 +71,7 @@ class StockConditionScanner:
             self.output_format = 'json'
             self.output_file = 'stock_conditions.json'
             self.api_keys = {}
+            self.config_file = config_file
     
     def setup_data_providers(self):
         """Setup data providers for stock information."""
@@ -295,6 +298,49 @@ class StockConditionScanner:
         except Exception as e:
             logger.error(f"Error saving CSV: {e}")
     
+    def update_config_with_qualified_stocks(self):
+        """
+        Update config.json with qualified stocks that meet all 5 conditions.
+        """
+        try:
+            # Get qualified stocks (those meeting all 5 conditions)
+            qualified_stocks = [
+                symbol for symbol, data in self.results.items() 
+                if data["all_conditions_met"]
+            ]
+            
+            if not qualified_stocks:
+                logger.info("No qualified stocks found to update config")
+                return
+            
+            # Read existing config
+            config = {}
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r') as f:
+                    config = json.load(f)
+            
+            # Update watchlist with qualified stocks
+            config['watchlist'] = qualified_stocks
+            
+            # Preserve other settings or set defaults
+            config['min_price'] = config.get('min_price', self.min_price)
+            config['max_price'] = config.get('max_price', self.max_price)
+            config['min_gap_pct'] = config.get('min_gap_pct', self.min_gap_pct)
+            config['min_rel_volume'] = config.get('min_rel_volume', self.min_rel_volume)
+            config['max_float'] = config.get('max_float', self.max_float)
+            config['output_format'] = config.get('output_format', self.output_format)
+            config['output_file'] = config.get('output_file', self.output_file)
+            config['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Write updated config back to file
+            with open(self.config_file, 'w') as f:
+                json.dump(config, f, indent=2)
+                
+            logger.info(f"Updated {self.config_file} with {len(qualified_stocks)} qualified stocks: {', '.join(qualified_stocks)}")
+            
+        except Exception as e:
+            logger.error(f"Error updating config with qualified stocks: {e}")
+    
     # Placeholder data provider methods (replace with your data source)
     def get_current_price(self, symbol):
         """Get current price for a stock (placeholder)."""
@@ -325,9 +371,25 @@ class StockConditionScanner:
 
 def main():
     """Main entry point."""
+    # Create scanner instance
     scanner = StockConditionScanner()
+    
+    # If watchlist is empty, use a default broader list
+    if not scanner.watchlist:
+        scanner.watchlist = [
+            "AAPL", "MSFT", "NVDA", "AMD", "TSLA", "AMZN", "GOOGL", "META", 
+            "NFLX", "BABA", "SHOP", "ROKU", "PLTR", "NIO", "LCID", "RIVN", 
+            "COIN", "GME", "AMC", "BB", "NOK", "ZM", "SNAP", "PINS"
+        ]
+    
+    # Run the scan
     scanner.scan_watchlist()
+    
+    # Save the scan results
     scanner.save_results()
+    
+    # Update config.json with qualified stocks
+    scanner.update_config_with_qualified_stocks()
 
 
 if __name__ == "__main__":

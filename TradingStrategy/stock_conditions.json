@@ -5,7 +5,75 @@
       "conditions": {
         "price": {
           "met": true,
-          "value": "$17.71",
+          "value": "$2.14",
+          "requirement": "Between $2.00-$20.00"
+        },
+        "percent_up": {
+          "met": true,
+          "value": "14.8%",
+          "requirement": "Up at least 10.0%"
+        },
+        "volume": {
+          "met": true,
+          "value": "5.8x",
+          "requirement": "Relative volume > 5.0x"
+        },
+        "news": {
+          "met": true,
+          "value": "Yes",
+          "requirement": "Has breaking news"
+        },
+        "float": {
+          "met": true,
+          "value": "8.4M",
+          "requirement": "Float < 10.0M shares"
+        }
+      },
+      "all_conditions_met": true,
+      "current_price": "$20.85",
+      "last_updated": "2025-05-14 19:13:39",
+      "notes": ""
+    },
+    {
+      "symbol": "MSFT",
+      "conditions": {
+        "price": {
+          "met": true,
+          "value": "$19.16",
+          "requirement": "Between $2.00-$20.00"
+        },
+        "percent_up": {
+          "met": true,
+          "value": "12.0%",
+          "requirement": "Up at least 10.0%"
+        },
+        "volume": {
+          "met": true,
+          "value": "7.7x",
+          "requirement": "Relative volume > 5.0x"
+        },
+        "news": {
+          "met": true,
+          "value": "Yes",
+          "requirement": "Has breaking news"
+        },
+        "float": {
+          "met": true,
+          "value": "6.5M",
+          "requirement": "Float < 10.0M shares"
+        }
+      },
+      "all_conditions_met": true,
+      "current_price": "$14.41",
+      "last_updated": "2025-05-14 19:13:39",
+      "notes": ""
+    },
+    {
+      "symbol": "NVDA",
+      "conditions": {
+        "price": {
+          "met": true,
+          "value": "$9.29",
           "requirement": "Between $2.00-$20.00"
         },
         "percent_up": {
@@ -15,41 +83,7 @@
         },
         "volume": {
           "met": true,
-          "value": "7.6x",
-          "requirement": "Relative volume > 5.0x"
-        },
-        "news": {
-          "met": false,
-          "value": "No",
-          "requirement": "Has breaking news"
-        },
-        "float": {
-          "met": true,
-          "value": "6.3M",
-          "requirement": "Float < 10.0M shares"
-        }
-      },
-      "all_conditions_met": false,
-      "current_price": "$5.73",
-      "last_updated": "2025-05-13 23:36:36",
-      "notes": ""
-    },
-    {
-      "symbol": "MSFT",
-      "conditions": {
-        "price": {
-          "met": true,
-          "value": "$13.18",
-          "requirement": "Between $2.00-$20.00"
-        },
-        "percent_up": {
-          "met": true,
-          "value": "13.8%",
-          "requirement": "Up at least 10.0%"
-        },
-        "volume": {
-          "met": false,
-          "value": "4.5x",
+          "value": "6.7x",
           "requirement": "Relative volume > 5.0x"
         },
         "news": {
@@ -58,48 +92,14 @@
           "requirement": "Has breaking news"
         },
         "float": {
-          "met": true,
-          "value": "8.2M",
+          "met": false,
+          "value": "11.2M",
           "requirement": "Float < 10.0M shares"
         }
       },
       "all_conditions_met": false,
-      "current_price": "$19.75",
-      "last_updated": "2025-05-13 23:36:36",
-      "notes": ""
-    },
-    {
-      "symbol": "NVDA",
-      "conditions": {
-        "price": {
-          "met": false,
-          "value": "$24.37",
-          "requirement": "Between $2.00-$20.00"
-        },
-        "percent_up": {
-          "met": true,
-          "value": "12.9%",
-          "requirement": "Up at least 10.0%"
-        },
-        "volume": {
-          "met": false,
-          "value": "2.3x",
-          "requirement": "Relative volume > 5.0x"
-        },
-        "news": {
-          "met": false,
-          "value": "No",
-          "requirement": "Has breaking news"
-        },
-        "float": {
-          "met": true,
-          "value": "5.4M",
-          "requirement": "Float < 10.0M shares"
-        }
-      },
-      "all_conditions_met": false,
-      "current_price": "$8.57",
-      "last_updated": "2025-05-13 23:36:36",
+      "current_price": "$12.75",
+      "last_updated": "2025-05-14 19:13:39",
       "notes": ""
     },
     {
@@ -107,51 +107,17 @@
       "conditions": {
         "price": {
           "met": true,
-          "value": "$11.20",
+          "value": "$15.75",
           "requirement": "Between $2.00-$20.00"
         },
         "percent_up": {
-          "met": true,
-          "value": "13.7%",
+          "met": false,
+          "value": "8.0%",
           "requirement": "Up at least 10.0%"
         },
         "volume": {
-          "met": true,
-          "value": "7.8x",
-          "requirement": "Relative volume > 5.0x"
-        },
-        "news": {
-          "met": true,
-          "value": "Yes",
-          "requirement": "Has breaking news"
-        },
-        "float": {
-          "met": true,
-          "value": "3.2M",
-          "requirement": "Float < 10.0M shares"
-        }
-      },
-      "all_conditions_met": true,
-      "current_price": "$15.91",
-      "last_updated": "2025-05-13 23:36:36",
-      "notes": ""
-    },
-    {
-      "symbol": "TSLA",
-      "conditions": {
-        "price": {
-          "met": true,
-          "value": "$8.21",
-          "requirement": "Between $2.00-$20.00"
-        },
-        "percent_up": {
-          "met": true,
-          "value": "13.2%",
-          "requirement": "Up at least 10.0%"
-        },
-        "volume": {
-          "met": true,
-          "value": "7.6x",
+          "met": false,
+          "value": "3.6x",
           "requirement": "Relative volume > 5.0x"
         },
         "news": {
@@ -161,15 +127,49 @@
         },
         "float": {
           "met": true,
-          "value": "2.9M",
+          "value": "2.2M",
           "requirement": "Float < 10.0M shares"
         }
       },
       "all_conditions_met": false,
-      "current_price": "$24.56",
-      "last_updated": "2025-05-13 23:36:36",
+      "current_price": "$19.86",
+      "last_updated": "2025-05-14 19:13:39",
+      "notes": ""
+    },
+    {
+      "symbol": "TSLA",
+      "conditions": {
+        "price": {
+          "met": false,
+          "value": "$20.18",
+          "requirement": "Between $2.00-$20.00"
+        },
+        "percent_up": {
+          "met": true,
+          "value": "13.4%",
+          "requirement": "Up at least 10.0%"
+        },
+        "volume": {
+          "met": true,
+          "value": "5.5x",
+          "requirement": "Relative volume > 5.0x"
+        },
+        "news": {
+          "met": false,
+          "value": "No",
+          "requirement": "Has breaking news"
+        },
+        "float": {
+          "met": true,
+          "value": "8.9M",
+          "requirement": "Float < 10.0M shares"
+        }
+      },
+      "all_conditions_met": false,
+      "current_price": "$24.24",
+      "last_updated": "2025-05-14 19:13:39",
       "notes": ""
     }
   ],
-  "last_updated": "2025-05-13 23:36:36"
+  "last_updated": "2025-05-14 19:13:39"
 }

@@ -28,3 +28,19 @@
 2025-05-13 23:36:36,429 - INFO - Scan complete
 2025-05-13 23:36:36,429 - INFO - Found 1 stocks meeting all conditions
 2025-05-13 23:36:36,430 - INFO - Results saved to stock_conditions.json
+2025-05-14 19:13:39,815 - ERROR - Error loading configuration: Expecting value: line 1 column 1 (char 0)
+2025-05-14 19:13:39,818 - INFO - Starting scan of 5 stocks...
+2025-05-14 19:13:39,819 - INFO - Scanning AAPL...
+2025-05-14 19:13:39,819 - INFO - AAPL meets ALL conditions!
+2025-05-14 19:13:39,820 - INFO - Scanning MSFT...
+2025-05-14 19:13:39,820 - INFO - MSFT meets ALL conditions!
+2025-05-14 19:13:39,820 - INFO - Scanning NVDA...
+2025-05-14 19:13:39,820 - INFO - NVDA failed conditions: float
+2025-05-14 19:13:39,821 - INFO - Scanning AMD...
+2025-05-14 19:13:39,821 - INFO - AMD failed conditions: percent_up, volume, news
+2025-05-14 19:13:39,822 - INFO - Scanning TSLA...
+2025-05-14 19:13:39,823 - INFO - TSLA failed conditions: price, news
+2025-05-14 19:13:39,824 - INFO - Scan complete
+2025-05-14 19:13:39,824 - INFO - Found 2 stocks meeting all conditions
+2025-05-14 19:13:39,825 - INFO - Results saved to stock_conditions.json
+2025-05-14 19:13:39,826 - ERROR - Error updating config with qualified stocks: Expecting value: line 1 column 1 (char 0)
