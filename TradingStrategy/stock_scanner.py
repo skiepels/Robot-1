@@ -1,28 +1,30 @@
 #!/usr/bin/env python
 """
-Stock Condition Scanner
+Ross Cameron's 5 Conditions Stock Scanner
 
-This script scans stocks and checks if they meet Ross Cameron's 5 trading conditions:
+This script scans stocks to identify those meeting Ross Cameron's 5 key criteria:
 1. Price between $2-$20
 2. Gap up at least 10%
 3. Relative volume at least 5x
 4. Has breaking news
 5. Float under 10 million shares
 
-Results are saved to a CSV/JSON file for easy viewing.
-Config.json is also automatically updated with stocks meeting all conditions.
+Usage:
+    python five_conditions_scanner.py --date 2025-05-14 --watchlist stocks.txt --api-key YOUR_API_KEY
 """
 
-import os
+import argparse
 import json
-import csv
-import time
 import logging
-from datetime import datetime
+import os
+import sys
+from datetime import datetime, timedelta
+
 import pandas as pd
 import requests
+import yfinance as yf
 
-# Initialize logging
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -33,127 +35,413 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class StockConditionScanner:
-    def __init__(self, config_file="config.json"):
-        """Initialize the scanner with configuration."""
-        self.load_config(config_file)
-        self.setup_data_providers()
+
+class FiveConditionsScanner:
+    """
+    Scanner for identifying stocks meeting Ross Cameron's 5 trading conditions.
+    """
+    
+    def __init__(self, api_key=None):
+        """
+        Initialize scanner with configuration.
+        
+        Parameters:
+        -----------
+        api_key: str, optional
+            API key for data provider (if required)
+        """
+        self.api_key = api_key
+        
+        # Default trading parameters
+        self.min_price = 2.0
+        self.max_price = 20.0
+        self.min_gap_pct = 10.0
+        self.min_rel_volume = 5.0
+        self.max_float = 10_000_000
+        
+        # Results storage
+        self.results = {}
+    
+    def load_watchlist(self, filename=None):
+        """
+        Load watchlist from file or use default list.
+        
+        Parameters:
+        -----------
+        filename: str, optional
+            Path to watchlist file (one symbol per line)
+            
+        Returns:
+        --------
+        list: Stock symbols to scan
+        """
+        default_watchlist = [
+            "AAPL", "MSFT", "NVDA", "AMD", "TSLA", "AMZN", "GOOGL", "META", 
+            "NFLX", "BABA", "SHOP", "ROKU", "PLTR", "NIO", "LCID", "RIVN"
+        ]
+        
+        if not filename or not os.path.exists(filename):
+            logger.info(f"Using default watchlist with {len(default_watchlist)} symbols")
+            return default_watchlist
+        
+        try:
+            with open(filename, 'r') as f:
+                symbols = [line.strip().upper() for line in f if line.strip()]
+            
+            logger.info(f"Loaded {len(symbols)} symbols from {filename}")
+            return symbols
+        except Exception as e:
+            logger.error(f"Error loading watchlist from {filename}: {e}")
+            logger.info(f"Falling back to default watchlist with {len(default_watchlist)} symbols")
+            return default_watchlist
+    
+    def scan_stocks(self, symbols, date=None):
+        """
+        Scan a list of stocks for the 5 conditions.
+        
+        Parameters:
+        -----------
+        symbols: list
+            List of stock symbols to scan
+        date: str or datetime, optional
+            Date to scan for (default: today)
+            
+        Returns:
+        --------
+        dict: Dictionary of scan results
+        """
+        # Convert date to datetime if needed
+        if date is None:
+            scan_date = datetime.now()
+        elif isinstance(date, str):
+            scan_date = datetime.strptime(date, '%Y-%m-%d')
+        else:
+            scan_date = date
+            
+        date_str = scan_date.strftime('%Y-%m-%d')
+        
+        logger.info(f"Scanning {len(symbols)} stocks for date {date_str}...")
+        
+        # Reset results
         self.results = {}
         
-    def load_config(self, config_file):
-        """Load configuration from file."""
+        for symbol in symbols:
+            try:
+                logger.info(f"Scanning {symbol}...")
+                
+                # Get data for this stock
+                stock_data = self.get_stock_data(symbol, scan_date)
+                
+                if stock_data is None:
+                    logger.warning(f"Could not get data for {symbol}")
+                    continue
+                
+                # Check all 5 conditions
+                price_condition = self.check_price_condition(stock_data)
+                gap_condition = self.check_gap_condition(stock_data)
+                volume_condition = self.check_volume_condition(stock_data)
+                news_condition = self.check_news_condition(symbol, scan_date)
+                float_condition = self.check_float_condition(symbol)
+                
+                # Determine if all conditions are met
+                conditions = {
+                    'price': price_condition,
+                    'percent_up': gap_condition,
+                    'volume': volume_condition,
+                    'news': news_condition,
+                    'float': float_condition
+                }
+                
+                all_conditions_met = all(condition['met'] for condition in conditions.values())
+                
+                # Create result
+                self.results[symbol] = {
+                    'symbol': symbol,
+                    'conditions': conditions,
+                    'all_conditions_met': all_conditions_met,
+                    'current_price': stock_data.get('current_price', 'N/A'),
+                    'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'notes': ""
+                }
+                
+                # Log result
+                if all_conditions_met:
+                    logger.info(f"{symbol} meets ALL conditions!")
+                else:
+                    failed_conditions = [
+                        name for name, condition in conditions.items() 
+                        if not condition['met']
+                    ]
+                    logger.info(f"{symbol} failed conditions: {', '.join(failed_conditions)}")
+                
+            except Exception as e:
+                logger.error(f"Error scanning {symbol}: {e}")
+        
+        # Count qualifying stocks
+        qualified_count = sum(1 for result in self.results.values() if result['all_conditions_met'])
+        logger.info(f"Scan complete. Found {qualified_count} stocks meeting all 5 conditions.")
+        
+        return self.results
+    
+    def get_stock_data(self, symbol, date):
+        """
+        Get stock data for a specific date.
+        
+        Parameters:
+        -----------
+        symbol: str
+            Stock symbol
+        date: datetime
+            Date to get data for
+            
+        Returns:
+        --------
+        dict: Stock data including price, volume, etc.
+        """
         try:
-            with open(config_file, 'r') as f:
-                config = json.load(f)
+            # Get data from Yahoo Finance
+            ticker = yf.Ticker(symbol)
             
-            # Set configuration parameters
-            self.watchlist = config.get('watchlist', [])
-            self.min_price = config.get('min_price', 2.0)
-            self.max_price = config.get('max_price', 20.0)
-            self.min_gap_pct = config.get('min_gap_pct', 10.0)
-            self.min_rel_volume = config.get('min_rel_volume', 5.0)
-            self.max_float = config.get('max_float', 10_000_000)
-            self.output_format = config.get('output_format', 'json')
-            self.output_file = config.get('output_file', 'stock_conditions.json')
-            self.api_keys = config.get('api_keys', {})
-            self.config_file = config_file
+            # Get historical data (including previous day for gap calculation)
+            start_date = date - timedelta(days=5)  # Include previous days for context
+            end_date = date + timedelta(days=1)    # Include scan date
             
-            logger.info(f"Loaded configuration with {len(self.watchlist)} stocks in watchlist")
+            hist = ticker.history(start=start_date.strftime('%Y-%m-%d'),
+                                  end=end_date.strftime('%Y-%m-%d'),
+                                  interval="1d")
+            
+            if hist.empty:
+                logger.warning(f"No historical data for {symbol}")
+                return None
+            
+            # Get the row for our scan date
+            date_str = date.strftime('%Y-%m-%d')
+            scan_day_data = hist[hist.index.strftime('%Y-%m-%d') == date_str]
+            
+            if scan_day_data.empty and len(hist) > 0:
+                # If exact date not found, use most recent
+                scan_day_data = hist.iloc[-1:]
+                
+            if scan_day_data.empty:
+                logger.warning(f"No data for {symbol} on {date_str}")
+                return None
+                
+            # Get previous day for gap calculation
+            if len(hist) > 1:
+                prev_day_data = hist.iloc[hist.index.get_loc(scan_day_data.index[0]) - 1:hist.index.get_loc(scan_day_data.index[0])]
+                prev_close = prev_day_data['Close'].iloc[0] if not prev_day_data.empty else None
+            else:
+                prev_close = None
+            
+            # Get company info
+            info = ticker.info
+            
+            # Create result
+            result = {
+                'symbol': symbol,
+                'date': date_str,
+                'current_price': float(scan_day_data['Close'].iloc[0]),
+                'open_price': float(scan_day_data['Open'].iloc[0]),
+                'high_price': float(scan_day_data['High'].iloc[0]),
+                'low_price': float(scan_day_data['Low'].iloc[0]),
+                'volume': int(scan_day_data['Volume'].iloc[0]),
+                'previous_close': float(prev_close) if prev_close is not None else None,
+                'avg_volume': info.get('averageVolume10days', info.get('averageVolume', 0)),
+                'float': info.get('floatShares', 0),
+                'market_cap': info.get('marketCap', 0),
+                'company_name': info.get('shortName', symbol)
+            }
+            
+            # Calculate gap percentage if we have previous close
+            if result['previous_close'] is not None and result['previous_close'] > 0:
+                result['gap_percent'] = (result['open_price'] - result['previous_close']) / result['previous_close'] * 100
+            else:
+                result['gap_percent'] = 0
+                
+            # Calculate relative volume
+            if result['avg_volume'] > 0:
+                result['relative_volume'] = result['volume'] / result['avg_volume']
+            else:
+                result['relative_volume'] = 0
+                
+            return result
+            
         except Exception as e:
-            logger.error(f"Error loading configuration: {e}")
-            # Set defaults
-            self.watchlist = ["AAPL", "MSFT", "NVDA", "AMD", "TSLA"]
-            self.min_price = 2.0
-            self.max_price = 20.0
-            self.min_gap_pct = 10.0
-            self.min_rel_volume = 5.0
-            self.max_float = 10_000_000
-            self.output_format = 'json'
-            self.output_file = 'stock_conditions.json'
-            self.api_keys = {}
-            self.config_file = config_file
+            logger.error(f"Error getting data for {symbol}: {e}")
+            return None
     
-    def setup_data_providers(self):
-        """Setup data providers for stock information."""
-        # This would normally integrate with your data sources
-        # For now, we'll use placeholder methods
-        pass
-    
-    def check_price_condition(self, symbol):
-        """Check if stock meets price condition ($2-$20)."""
-        try:
-            # Get current price (placeholder - implement with your data source)
-            price = self.get_current_price(symbol)
+    def check_price_condition(self, stock_data):
+        """
+        Check if stock meets price condition ($2-$20).
+        
+        Parameters:
+        -----------
+        stock_data: dict
+            Stock data including price
             
-            # Check condition
-            condition_met = self.min_price <= price <= self.max_price
+        Returns:
+        --------
+        dict: Condition check result
+        """
+        if stock_data is None:
+            return {'met': False, 'value': 'N/A', 'requirement': f"Between ${self.min_price:.2f}-${self.max_price:.2f}"}
+            
+        price = stock_data.get('current_price')
+        
+        if price is None:
+            return {'met': False, 'value': 'N/A', 'requirement': f"Between ${self.min_price:.2f}-${self.max_price:.2f}"}
+            
+        condition_met = self.min_price <= price <= self.max_price
+        
+        return {
+            'met': condition_met,
+            'value': f"${price:.2f}",
+            'requirement': f"Between ${self.min_price:.2f}-${self.max_price:.2f}"
+        }
+    
+    def check_gap_condition(self, stock_data):
+        """
+        Check if stock meets gap condition (up at least 10%).
+        
+        Parameters:
+        -----------
+        stock_data: dict
+            Stock data including gap percentage
+            
+        Returns:
+        --------
+        dict: Condition check result
+        """
+        if stock_data is None:
+            return {'met': False, 'value': 'N/A', 'requirement': f"Up at least {self.min_gap_pct:.1f}%"}
+            
+        gap_pct = stock_data.get('gap_percent')
+        
+        if gap_pct is None:
+            return {'met': False, 'value': 'N/A', 'requirement': f"Up at least {self.min_gap_pct:.1f}%"}
+            
+        condition_met = gap_pct >= self.min_gap_pct
+        
+        return {
+            'met': condition_met,
+            'value': f"{gap_pct:.1f}%",
+            'requirement': f"Up at least {self.min_gap_pct:.1f}%"
+        }
+    
+    def check_volume_condition(self, stock_data):
+        """
+        Check if stock meets volume condition (relative volume > 5x).
+        
+        Parameters:
+        -----------
+        stock_data: dict
+            Stock data including volume information
+            
+        Returns:
+        --------
+        dict: Condition check result
+        """
+        if stock_data is None:
+            return {'met': False, 'value': 'N/A', 'requirement': f"Relative volume > {self.min_rel_volume:.1f}x"}
+            
+        rel_volume = stock_data.get('relative_volume')
+        
+        if rel_volume is None:
+            return {'met': False, 'value': 'N/A', 'requirement': f"Relative volume > {self.min_rel_volume:.1f}x"}
+            
+        condition_met = rel_volume >= self.min_rel_volume
+        
+        return {
+            'met': condition_met,
+            'value': f"{rel_volume:.1f}x",
+            'requirement': f"Relative volume > {self.min_rel_volume:.1f}x"
+        }
+    
+    def check_news_condition(self, symbol, date):
+        """
+        Check if stock has breaking news.
+        
+        Parameters:
+        -----------
+        symbol: str
+            Stock symbol
+        date: datetime
+            Date to check for news
+            
+        Returns:
+        --------
+        dict: Condition check result
+        """
+        # For demonstration, this is simplified
+        # In a real implementation, you would connect to a news API
+        try:
+            has_news = self.check_news_via_api(symbol, date)
             
             return {
-                "met": condition_met,
-                "value": f"${price:.2f}",
-                "requirement": f"Between ${self.min_price:.2f}-${self.max_price:.2f}"
+                'met': has_news,
+                'value': "Yes" if has_news else "No",
+                'requirement': "Has breaking news"
             }
         except Exception as e:
-            logger.error(f"Error checking price condition for {symbol}: {e}")
-            return {"met": False, "value": "N/A", "requirement": f"Between ${self.min_price:.2f}-${self.max_price:.2f}"}
+            logger.error(f"Error checking news for {symbol}: {e}")
+            return {'met': False, 'value': "No", 'requirement': "Has breaking news"}
     
-    def check_gap_condition(self, symbol):
-        """Check if stock meets gap condition (up at least 10%)."""
-        try:
-            # Get gap percentage (placeholder)
-            gap_pct = self.get_gap_percentage(symbol)
+    def check_news_via_api(self, symbol, date):
+        """
+        Check for breaking news via API.
+        
+        Parameters:
+        -----------
+        symbol: str
+            Stock symbol
+        date: datetime
+            Date to check for news
             
-            # Check condition
-            condition_met = gap_pct >= self.min_gap_pct
-            
-            return {
-                "met": condition_met,
-                "value": f"{gap_pct:.1f}%",
-                "requirement": f"Up at least {self.min_gap_pct:.1f}%"
-            }
-        except Exception as e:
-            logger.error(f"Error checking gap condition for {symbol}: {e}")
-            return {"met": False, "value": "N/A", "requirement": f"Up at least {self.min_gap_pct:.1f}%"}
-    
-    def check_volume_condition(self, symbol):
-        """Check if stock meets volume condition (rel. volume > 5x)."""
-        try:
-            # Get relative volume (placeholder)
-            rel_volume = self.get_relative_volume(symbol)
-            
-            # Check condition
-            condition_met = rel_volume >= self.min_rel_volume
-            
-            return {
-                "met": condition_met,
-                "value": f"{rel_volume:.1f}x",
-                "requirement": f"Relative volume > {self.min_rel_volume:.1f}x"
-            }
-        except Exception as e:
-            logger.error(f"Error checking volume condition for {symbol}: {e}")
-            return {"met": False, "value": "N/A", "requirement": f"Relative volume > {self.min_rel_volume:.1f}x"}
-    
-    def check_news_condition(self, symbol):
-        """Check if stock has breaking news."""
-        try:
-            # Check for news (placeholder)
-            has_news = self.has_breaking_news(symbol)
-            
-            return {
-                "met": has_news,
-                "value": "Yes" if has_news else "No",
-                "requirement": "Has breaking news"
-            }
-        except Exception as e:
-            logger.error(f"Error checking news condition for {symbol}: {e}")
-            return {"met": False, "value": "No", "requirement": "Has breaking news"}
+        Returns:
+        --------
+        bool: True if breaking news exists
+        """
+        # If you have a news API key, implement real news checking here
+        if self.api_key:
+            try:
+                # Example using Alpha Vantage API
+                date_str = date.strftime('%Y%m%dT0000')
+                url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={symbol}&time_from={date_str}&apikey={self.api_key}"
+                response = requests.get(url)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    news_items = data.get('feed', [])
+                    return len(news_items) > 0
+                    
+            except Exception as e:
+                logger.error(f"Error fetching news from API for {symbol}: {e}")
+        
+        # Fallback to random generation for demo purposes
+        # In a real implementation, replace this with actual news checking
+        import random
+        return random.choice([True, False])
     
     def check_float_condition(self, symbol):
-        """Check if stock meets float condition (< 10M shares)."""
+        """
+        Check if stock meets float condition (< 10M shares).
+        
+        Parameters:
+        -----------
+        symbol: str
+            Stock symbol
+            
+        Returns:
+        --------
+        dict: Condition check result
+        """
         try:
-            # Get float size (placeholder)
+            # Get float data
             float_size = self.get_float_size(symbol)
             
+            if float_size is None:
+                return {'met': False, 'value': 'N/A', 'requirement': f"Float < {self.max_float/1_000_000:.1f}M shares"}
+                
             # Convert to millions for display
             float_millions = float_size / 1_000_000
             
@@ -161,235 +449,138 @@ class StockConditionScanner:
             condition_met = float_size <= self.max_float
             
             return {
-                "met": condition_met,
-                "value": f"{float_millions:.1f}M",
-                "requirement": f"Float < {self.max_float/1_000_000:.1f}M shares"
+                'met': condition_met,
+                'value': f"{float_millions:.1f}M",
+                'requirement': f"Float < {self.max_float/1_000_000:.1f}M shares"
             }
         except Exception as e:
-            logger.error(f"Error checking float condition for {symbol}: {e}")
-            return {"met": False, "value": "N/A", "requirement": f"Float < {self.max_float/1_000_000:.1f}M shares"}
-    
-    def scan_stock(self, symbol):
-        """Scan a single stock for all conditions."""
-        logger.info(f"Scanning {symbol}...")
-        
-        # Get current price for reference
-        current_price = self.get_current_price(symbol)
-        
-        # Check all conditions
-        price_condition = self.check_price_condition(symbol)
-        gap_condition = self.check_gap_condition(symbol)
-        volume_condition = self.check_volume_condition(symbol)
-        news_condition = self.check_news_condition(symbol)
-        float_condition = self.check_float_condition(symbol)
-        
-        # Check if all conditions are met
-        all_conditions_met = (
-            price_condition["met"] and
-            gap_condition["met"] and
-            volume_condition["met"] and
-            news_condition["met"] and
-            float_condition["met"]
-        )
-        
-        # Create stock result
-        stock_result = {
-            "symbol": symbol,
-            "conditions": {
-                "price": price_condition,
-                "percent_up": gap_condition,
-                "volume": volume_condition,
-                "news": news_condition,
-                "float": float_condition
-            },
-            "all_conditions_met": all_conditions_met,
-            "current_price": f"${current_price:.2f}",
-            "last_updated": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "notes": ""
-        }
-        
-        # Add to results
-        self.results[symbol] = stock_result
-        
-        # Log result
-        if all_conditions_met:
-            logger.info(f"{symbol} meets ALL conditions!")
-        else:
-            # List which conditions failed
-            failed_conditions = []
-            for name, condition in stock_result["conditions"].items():
-                if not condition["met"]:
-                    failed_conditions.append(name)
-                    
-            logger.info(f"{symbol} failed conditions: {', '.join(failed_conditions)}")
-        
-        return stock_result
-    
-    def scan_watchlist(self):
-        """Scan all stocks in the watchlist."""
-        logger.info(f"Starting scan of {len(self.watchlist)} stocks...")
-        
-        for symbol in self.watchlist:
-            try:
-                self.scan_stock(symbol)
-            except Exception as e:
-                logger.error(f"Error scanning {symbol}: {e}")
-        
-        logger.info("Scan complete")
-        
-        # Count stocks meeting all conditions
-        stocks_meeting_all = sum(1 for stock in self.results.values() if stock["all_conditions_met"])
-        logger.info(f"Found {stocks_meeting_all} stocks meeting all conditions")
-        
-        return self.results
-    
-    def save_results(self):
-        """Save results to file in the specified format."""
-        if self.output_format == 'json':
-            self._save_json()
-        elif self.output_format == 'csv':
-            self._save_csv()
-        else:
-            logger.error(f"Unsupported output format: {self.output_format}")
-    
-    def _save_json(self):
-        """Save results as JSON."""
-        try:
-            with open(self.output_file, 'w') as f:
-                json.dump({"stocks": list(self.results.values()), 
-                          "last_updated": datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, 
-                         f, indent=2)
-            logger.info(f"Results saved to {self.output_file}")
-        except Exception as e:
-            logger.error(f"Error saving JSON: {e}")
-    
-    def _save_csv(self):
-        """Save results as CSV."""
-        try:
-            # Prepare CSV data
-            csv_data = []
-            
-            for symbol, data in self.results.items():
-                row = {
-                    "Symbol": symbol,
-                    "Price_Condition": "Yes" if data["conditions"]["price"]["met"] else "No",
-                    "Price_Value": data["conditions"]["price"]["value"],
-                    "Gap_Condition": "Yes" if data["conditions"]["percent_up"]["met"] else "No",
-                    "Gap_Value": data["conditions"]["percent_up"]["value"],
-                    "Volume_Condition": "Yes" if data["conditions"]["volume"]["met"] else "No",
-                    "Volume_Value": data["conditions"]["volume"]["value"],
-                    "News_Condition": "Yes" if data["conditions"]["news"]["met"] else "No",
-                    "Float_Condition": "Yes" if data["conditions"]["float"]["met"] else "No",
-                    "Float_Value": data["conditions"]["float"]["value"],
-                    "All_Conditions_Met": "Yes" if data["all_conditions_met"] else "No",
-                    "Current_Price": data["current_price"],
-                    "Last_Updated": data["last_updated"],
-                    "Notes": data["notes"]
-                }
-                csv_data.append(row)
-            
-            # Write to CSV
-            if csv_data:
-                df = pd.DataFrame(csv_data)
-                df.to_csv(self.output_file, index=False)
-                logger.info(f"Results saved to {self.output_file}")
-            else:
-                logger.warning("No data to save to CSV")
-        except Exception as e:
-            logger.error(f"Error saving CSV: {e}")
-    
-    def update_config_with_qualified_stocks(self):
-        """
-        Update config.json with qualified stocks that meet all 5 conditions.
-        """
-        try:
-            # Get qualified stocks (those meeting all 5 conditions)
-            qualified_stocks = [
-                symbol for symbol, data in self.results.items() 
-                if data["all_conditions_met"]
-            ]
-            
-            if not qualified_stocks:
-                logger.info("No qualified stocks found to update config")
-                return
-            
-            # Read existing config
-            config = {}
-            if os.path.exists(self.config_file):
-                with open(self.config_file, 'r') as f:
-                    config = json.load(f)
-            
-            # Update watchlist with qualified stocks
-            config['watchlist'] = qualified_stocks
-            
-            # Preserve other settings or set defaults
-            config['min_price'] = config.get('min_price', self.min_price)
-            config['max_price'] = config.get('max_price', self.max_price)
-            config['min_gap_pct'] = config.get('min_gap_pct', self.min_gap_pct)
-            config['min_rel_volume'] = config.get('min_rel_volume', self.min_rel_volume)
-            config['max_float'] = config.get('max_float', self.max_float)
-            config['output_format'] = config.get('output_format', self.output_format)
-            config['output_file'] = config.get('output_file', self.output_file)
-            config['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            # Write updated config back to file
-            with open(self.config_file, 'w') as f:
-                json.dump(config, f, indent=2)
-                
-            logger.info(f"Updated {self.config_file} with {len(qualified_stocks)} qualified stocks: {', '.join(qualified_stocks)}")
-            
-        except Exception as e:
-            logger.error(f"Error updating config with qualified stocks: {e}")
-    
-    # Placeholder data provider methods (replace with your data source)
-    def get_current_price(self, symbol):
-        """Get current price for a stock (placeholder)."""
-        # In a real implementation, this would call your data source
-        import random
-        return random.uniform(1.0, 25.0)
-    
-    def get_gap_percentage(self, symbol):
-        """Get gap percentage for a stock (placeholder)."""
-        import random
-        return random.uniform(5.0, 15.0)
-    
-    def get_relative_volume(self, symbol):
-        """Get relative volume for a stock (placeholder)."""
-        import random
-        return random.uniform(2.0, 8.0)
-    
-    def has_breaking_news(self, symbol):
-        """Check if stock has breaking news (placeholder)."""
-        import random
-        return random.choice([True, False])
+            logger.error(f"Error checking float for {symbol}: {e}")
+            return {'met': False, 'value': 'N/A', 'requirement': f"Float < {self.max_float/1_000_000:.1f}M shares"}
     
     def get_float_size(self, symbol):
-        """Get float size for a stock (placeholder)."""
-        import random
-        return random.uniform(2_000_000, 15_000_000)
+        """
+        Get float size for a stock.
+        
+        Parameters:
+        -----------
+        symbol: str
+            Stock symbol
+            
+        Returns:
+        --------
+        int: Float size in shares
+        """
+        try:
+            # Using Yahoo Finance for float data
+            ticker = yf.Ticker(symbol)
+            float_shares = ticker.info.get('floatShares', 0)
+            
+            return float_shares
+        except Exception as e:
+            logger.error(f"Error getting float size for {symbol}: {e}")
+            
+            # For demo purposes, generate a random float size
+            # In a real implementation, use a reliable data source
+            import random
+            return random.randint(5_000_000, 15_000_000)
+    
+    def save_results(self, filename='stock_conditions.json'):
+        """
+        Save scan results to a JSON file.
+        
+        Parameters:
+        -----------
+        filename: str
+            Output filename
+            
+        Returns:
+        --------
+        bool: True if successful
+        """
+        try:
+            with open(filename, 'w') as f:
+                json.dump({
+                    'stocks': list(self.results.values()),
+                    'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }, f, indent=2)
+                
+            logger.info(f"Results saved to {filename}")
+            return True
+        except Exception as e:
+            logger.error(f"Error saving results to {filename}: {e}")
+            return False
 
 
 def main():
-    """Main entry point."""
-    # Create scanner instance
-    scanner = StockConditionScanner()
+    """Main function."""
+    parser = argparse.ArgumentParser(description='Scan stocks for Ross Cameron\'s 5 trading conditions')
     
-    # If watchlist is empty, use a default broader list
-    if not scanner.watchlist:
-        scanner.watchlist = [
-            "AAPL", "MSFT", "NVDA", "AMD", "TSLA", "AMZN", "GOOGL", "META", 
-            "NFLX", "BABA", "SHOP", "ROKU", "PLTR", "NIO", "LCID", "RIVN", 
-            "COIN", "GME", "AMC", "BB", "NOK", "ZM", "SNAP", "PINS"
-        ]
+    parser.add_argument('--date', type=str, default=None,
+                      help='Date to scan for (YYYY-MM-DD format, default: today)')
     
-    # Run the scan
-    scanner.scan_watchlist()
+    parser.add_argument('--watchlist', type=str, default=None,
+                      help='Path to watchlist file (one symbol per line)')
     
-    # Save the scan results
-    scanner.save_results()
+    parser.add_argument('--output', type=str, default='stock_conditions.json',
+                      help='Output file for results (JSON format)')
     
-    # Update config.json with qualified stocks
-    scanner.update_config_with_qualified_stocks()
+    parser.add_argument('--api-key', type=str, default=None,
+                      help='API key for news data')
+    
+    parser.add_argument('--min-price', type=float, default=2.0,
+                      help='Minimum stock price')
+    
+    parser.add_argument('--max-price', type=float, default=20.0,
+                      help='Maximum stock price')
+    
+    parser.add_argument('--min-gap', type=float, default=10.0,
+                      help='Minimum gap percentage')
+    
+    parser.add_argument('--min-rel-volume', type=float, default=5.0,
+                      help='Minimum relative volume')
+    
+    parser.add_argument('--max-float', type=float, default=10.0,
+                      help='Maximum float in millions')
+    
+    args = parser.parse_args()
+    
+    # Initialize scanner
+    scanner = FiveConditionsScanner(api_key=args.api_key)
+    
+    # Set custom parameters if provided
+    scanner.min_price = args.min_price
+    scanner.max_price = args.max_price
+    scanner.min_gap_pct = args.min_gap
+    scanner.min_rel_volume = args.min_rel_volume
+    scanner.max_float = args.max_float * 1_000_000  # Convert from millions
+    
+    # Parse date
+    scan_date = datetime.now()
+    if args.date:
+        try:
+            scan_date = datetime.strptime(args.date, '%Y-%m-%d')
+        except ValueError:
+            logger.error(f"Invalid date format: {args.date}. Using today's date.")
+    
+    # Load watchlist
+    symbols = scanner.load_watchlist(args.watchlist)
+    
+    # Run scan
+    scanner.scan_stocks(symbols, date=scan_date)
+    
+    # Save results
+    scanner.save_results(args.output)
+    
+    # Print summary
+    qualified_stocks = [s['symbol'] for s in scanner.results.values() if s['all_conditions_met']]
+    if qualified_stocks:
+        print(f"\nStocks meeting all 5 conditions on {scan_date.strftime('%Y-%m-%d')}:")
+        for symbol in qualified_stocks:
+            print(f"- {symbol}")
+    else:
+        print(f"\nNo stocks found meeting all 5 conditions on {scan_date.strftime('%Y-%m-%d')}.")
+    
+    print(f"\nDetailed results saved to {args.output}")
 
 
 if __name__ == "__main__":
